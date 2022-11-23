@@ -1,0 +1,5 @@
+node_modules
+dist/example*
+dist/index.html
+.cache
+.DS_Store

@@ -1,0 +1,45 @@
+{
+  "name": "@here-wallet/near-selector",
+  "version": "1.0.0",
+  "description": "HereWallet lib for near-selector",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "homepage": "https://github.com/here-wallet/near-selector",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/here-wallet/near-selector.git"
+  },
+  "scripts": {
+    "example": "parcel example/index.html --open",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "bn.js": "5.2.1",
+    "borsh": "0.7.0",
+    "qrcode": "1.5.1",
+    "uuid4": "2.0.3"
+  },
+  "peerDependencies": {
+    "@near-wallet-selector/core": "7.2.1",
+    "@near-wallet-selector/modal-ui": "7.2.0",
+    "@near-wallet-selector/modal-ui-js": "7.2.0",
+    "@near-wallet-selector/near-wallet": "7.2.0",
+    "near-api-js": "^0.44.2"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.6.1",
+    "@types/bn.js": "5.1.1",
+    "@babel/core": "7.2.0",
+    "typescript": "4.4.4"
+  },
+  "keywords": [
+    "near",
+    "herewallet",
+    "web3"
+  ],
+  "bugs": {
+    "url": "https://github.com/here-wallet/near-selector/issues"
+  },
+  "author": "here-wallet",
+  "license": "ISC"
+}
