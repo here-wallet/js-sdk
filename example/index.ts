@@ -7,9 +7,9 @@ import { setupModal } from "@near-wallet-selector/modal-ui-js";
 import { HereWallet, setupHereWallet } from "../src/index";
 
 const uikit = {
-  connectBtn: document.getElementById("connect"),
-  qrcode: document.getElementById("qrcode"),
-  account: document.getElementById("account-id"),
+  connectBtn: document.getElementById("connect")!,
+  qrcode: document.getElementById("qrcode")!,
+  account: document.getElementById("account-id")!,
 };
 
 const setup = async () => {
@@ -33,12 +33,13 @@ const setup = async () => {
   if (!selector.isSignedIn()) {
     await here.signIn({
       contractId: "social.near",
+
+      forceRedirect: false,
       onApproving: () => console.log("Approving!..."),
-      // onInitialized: (link) => {
-      //   console.log("asyncSignIn", link);
-      //   window.open(link, "_target", "popup");
-      //   QRCode.toCanvas(uikit.qrcode, link);
-      // },
+      onInitialized: (link) => {
+        console.log("asyncSignIn", link);
+        QRCode.toCanvas(uikit.qrcode, link);
+      },
     });
   }
 
@@ -48,31 +49,25 @@ const setup = async () => {
 
   // After login you can sign transactions with same way
   const result = await here.signAndSendTransaction({
-    // onInitialized: (link) => {
-    //   console.log("signAndSendTransaction", link);
-    //   QRCode.toCanvas(uikit.qrcode, link);
-    // },
-    onApproving: () => console.log("Approving!..."),
     receiverId: "social.near",
     actions: [
       {
         type: "FunctionCall",
         params: {
           methodName: "set",
-          args: {
-            data: {
-              [nick]: {
-                profile: {
-                  name: "Andrey",
-                },
-              },
-            },
-          },
+          args: { data: { [nick]: { profile: { hereUser: "yes" } } } },
           gas: "30000000000000",
           deposit: "1",
         },
       },
     ],
+
+    forceRedirect: false,
+    onApproving: () => console.log("Approving!..."),
+    onInitialized: (link) => {
+      console.log("signAndSendTransaction", link);
+      QRCode.toCanvas(uikit.qrcode, link);
+    },
   });
 
   console.log(result);

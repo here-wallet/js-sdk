@@ -2,6 +2,7 @@ import uuid4 from "uuid4";
 import { createRequest, getTransactionStatus, HereConfiguration } from "./utils";
 
 export interface AsyncHereSignDelegate {
+  forceRedirect?: boolean;
   onInitialized?: (link: string) => void;
   onApproving?: (link: string) => void;
 }
@@ -28,11 +29,10 @@ export const asyncHereSign = async (
 
   delegate.onInitialized?.(deeplink);
 
-  if (delegate.onInitialized == null) {
+  if (delegate.forceRedirect == null || delegate.forceRedirect === true) {
     const left = screen.width / 2 - 820 / 2;
     const top = screen.height / 2 - 560 / 2;
-    window.location.href = deeplink.replace("https", "herewallet");
-    //window.open(deeplink, "_target", `height=560,width=820,left=${left},top=${top}`);
+    window.open(deeplink, "_blank", `popup,height=560,width=820,left=${left},top=${top}`);
   }
 
   return new Promise((resolve, reject) => {
