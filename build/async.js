@@ -14,21 +14,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.asyncHereSign = void 0;
 const uuid4_1 = __importDefault(require("uuid4"));
+const strategy_1 = require("./strategy");
 const utils_1 = require("./utils");
 const asyncHereSign = (config, options, delegate = {}) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b, _c;
     const requestId = (0, uuid4_1.default)();
     const deeplink = `${config.hereConnector}/approve?request_id=${requestId}`;
     yield (0, utils_1.createRequest)(config, requestId, options);
-    const socketApi = config.hereApi.replace("https", "ws");
+    const strategy = ((_a = delegate.strategy) !== null && _a !== void 0 ? _a : strategy_1.popupStrategy)();
+    const socketApi = config.hereApi.replace("https", "wss");
     const endpoint = `${socketApi}/api/v1/web/ws/transaction_approved/${requestId}`;
     const socket = new WebSocket(endpoint);
     let fallbackHttpTimer;
-    (_a = delegate.onInitialized) === null || _a === void 0 ? void 0 : _a.call(delegate, deeplink);
+    (_b = delegate.onInitialized) === null || _b === void 0 ? void 0 : _b.call(delegate, deeplink);
+    if (delegate.forceRedirect == null || delegate.forceRedirect === true) {
+        (_c = strategy.onInitialized) === null || _c === void 0 ? void 0 : _c.call(strategy, deeplink);
+    }
     return new Promise((resolve, reject) => {
         const clear = () => {
+            var _a;
             fallbackHttpTimer = -1;
             clearInterval(fallbackHttpTimer);
+            (_a = strategy.onCompleted) === null || _a === void 0 ? void 0 : _a.call(strategy);
             socket.close();
         };
         const processApprove = (data) => {
@@ -57,14 +64,9 @@ const asyncHereSign = (config, options, delegate = {}) => __awaiter(void 0, void
                 setupTimer();
             }), 3000);
         };
-        // If socket disconnect with error, fallback to http
-        socket.onerror = (e) => {
-            if (fallbackHttpTimer != null)
-                return;
-            setupTimer();
-        };
+        setupTimer();
         socket.onmessage = (e) => {
-            console.log(e);
+            console.log("Message", e);
             if (e.data == null)
                 return;
             try {

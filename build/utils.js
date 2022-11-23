@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.transformTransactions = exports.getHereBalance = exports.setupWalletState = exports.hereConfigurations = exports.createRequest = exports.getTransactionStatus = exports.getPublicKeys = void 0;
+exports.isMobile = exports.transformTransactions = exports.getHereBalance = exports.setupWalletState = exports.hereConfigurations = exports.createRequest = exports.getTransactionStatus = exports.getPublicKeys = void 0;
 const wallet_utils_1 = require("@near-wallet-selector/wallet-utils");
 const near_api_js_1 = require("near-api-js");
 const uuid4_1 = __importDefault(require("uuid4"));
@@ -116,3 +116,7 @@ const transformTransactions = (state, transactions) => __awaiter(void 0, void 0,
     return transformed;
 });
 exports.transformTransactions = transformTransactions;
+const isMobile = () => {
+    return window.matchMedia("(any-pointer:coarse)").matches;
+};
+exports.isMobile = isMobile;

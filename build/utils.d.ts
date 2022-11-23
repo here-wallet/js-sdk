@@ -17,3 +17,4 @@ export declare const hereConfigurations: Record<string, HereConfiguration>;
 export declare const setupWalletState: (config: HereConfiguration, network: Network) => Promise<HereWalletState>;
 export declare const getHereBalance: (state: HereWalletState, config: HereConfiguration) => Promise<BN>;
 export declare const transformTransactions: (state: HereWalletState, transactions: Array<Optional<Transaction, "signerId">>) => Promise<nearTransactions.Transaction[]>;
+export declare const isMobile: () => boolean;

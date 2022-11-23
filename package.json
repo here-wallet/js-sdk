@@ -1,6 +1,6 @@
 {
   "name": "@here-wallet/near-selector",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -41,5 +41,8 @@
     "url": "https://github.com/here-wallet/near-selector/issues"
   },
   "author": "here-wallet",
-  "license": "ISC"
+  "license": "ISC",
+  "directories": {
+    "example": "example"
+  }
 }

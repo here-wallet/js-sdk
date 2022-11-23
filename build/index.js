@@ -12,10 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupHereWallet = void 0;
+exports.setupHereWallet = exports.iframeStrategy = exports.popupStrategy = void 0;
 const selector_1 = require("./selector");
 const utils_1 = require("./utils");
 const icon_1 = __importDefault(require("./icon"));
+var strategy_1 = require("./strategy");
+Object.defineProperty(exports, "popupStrategy", { enumerable: true, get: function () { return strategy_1.popupStrategy; } });
+Object.defineProperty(exports, "iframeStrategy", { enumerable: true, get: function () { return strategy_1.iframeStrategy; } });
 function setupHereWallet({ deprecated = false, iconUrl = icon_1.default } = {}) {
     return ({ options }) => __awaiter(this, void 0, void 0, function* () {
         const configuration = utils_1.hereConfigurations[options.network.networkId];

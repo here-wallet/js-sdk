@@ -1,7 +1,10 @@
+import { Strategy } from "./strategy";
 import { HereConfiguration } from "./utils";
 export interface AsyncHereSignDelegate {
+    forceRedirect?: boolean;
     onInitialized?: (link: string) => void;
     onApproving?: (link: string) => void;
+    strategy?: () => Strategy;
 }
 export interface AsyncHereSignResult {
     public_key?: string;

@@ -33,16 +33,9 @@ console.log(`Hello ${accounts[0].accountId}!`);
 
 ## How it works
 
-By default, all near-selector api calls that you make with this library run a background process and generate a unique link that the user can go to their mobile wallet and confirm the transaction.
+By default, all near-selector api calls that you make with this library run a background process and generate a unique link that the user can go to their mobile wallet and confirm the transaction. This is a link of the form: https://web.herewallet.app/approve?request_id=UUID4
 
-This is a link of the form:
-https://web.herewallet.app/approve?request_id=UUID4
-or direct link with custom url schema:
-herewallet://web.herewallet.app/approve?request_id=UUID4
-
-If a user has logged into your application from a phone and has a wallet installed, we immediately transfer him to the application for signing.
-
-In all other cases, we open a new window on the web.herewallet.app site, where the user can find information about installing the wallet and sign the transaction there.
+If a user has logged into your application from a phone and has a wallet installed, we immediately transfer him to the application for signing. In all other cases, we open a new window on the web.herewallet.app site, where the user can find information about installing the wallet and sign the transaction there.
 
 All this time while user signing the transaction, a background process in your application will monitor the status of the transaction requested for signing.
 
@@ -70,7 +63,8 @@ const result = await here.signAndSendTransaction({
 
 ```
 
-You can also look at an example in this repository /example/index.ts
+You can also look at an example in this repository /example/index.ts or in sandbox:
+https://codesandbox.io/s/here-wallet-instant-app-6msgmn
 
 ## Async Methods
 

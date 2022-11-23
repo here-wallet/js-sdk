@@ -62,12 +62,13 @@ const initHereWallet = ({ store, logger, emitter, options, configuration }) => _
     };
     return {
         signIn(_a) {
-            var { contractId, methodNames } = _a, delegate = __rest(_a, ["contractId", "methodNames"]);
+            var { contractId, methodNames, callbackUrl } = _a, delegate = __rest(_a, ["contractId", "methodNames", "callbackUrl"]);
             return __awaiter(this, void 0, void 0, function* () {
                 const approve = {};
                 const accessKey = near_api_js_1.KeyPair.fromRandom("ed25519");
                 approve.public_key = accessKey.getPublicKey().toString();
                 approve.contract_id = contractId;
+                approve.callbackUrl = callbackUrl;
                 if (methodNames) {
                     approve.methodNames = methodNames.pop();
                 }
