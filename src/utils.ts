@@ -144,3 +144,7 @@ export const transformTransactions = async (
 
   return transformed;
 };
+
+export const isMobile = () => {
+  return window.matchMedia("(any-pointer:coarse)").matches;
+};

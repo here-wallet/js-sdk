@@ -1,10 +1,12 @@
 import uuid4 from "uuid4";
-import { createRequest, getTransactionStatus, HereConfiguration } from "./utils";
+import { popupStrategy, Strategy } from "./strategy";
+import { createRequest, getTransactionStatus, HereConfiguration, isMobile } from "./utils";
 
 export interface AsyncHereSignDelegate {
   forceRedirect?: boolean;
   onInitialized?: (link: string) => void;
   onApproving?: (link: string) => void;
+  strategy?: () => Strategy;
 }
 
 export interface AsyncHereSignResult {
@@ -22,23 +24,22 @@ export const asyncHereSign = async (
   const deeplink = `${config.hereConnector}/approve?request_id=${requestId}`;
   await createRequest(config, requestId, options);
 
-  const socketApi = config.hereApi.replace("https", "ws");
+  const strategy = (delegate.strategy ?? popupStrategy)();
+  const socketApi = config.hereApi.replace("https", "wss");
   const endpoint = `${socketApi}/api/v1/web/ws/transaction_approved/${requestId}`;
   const socket = new WebSocket(endpoint);
   let fallbackHttpTimer;
 
   delegate.onInitialized?.(deeplink);
-
   if (delegate.forceRedirect == null || delegate.forceRedirect === true) {
-    const left = screen.width / 2 - 820 / 2;
-    const top = screen.height / 2 - 560 / 2;
-    window.open(deeplink, "_blank", `popup,height=560,width=820,left=${left},top=${top}`);
+    strategy.onInitialized?.(deeplink);
   }
 
   return new Promise((resolve, reject) => {
     const clear = () => {
       fallbackHttpTimer = -1;
       clearInterval(fallbackHttpTimer);
+      strategy.onCompleted?.();
       socket.close();
     };
 
@@ -64,17 +65,13 @@ export const asyncHereSign = async (
         if (fallbackHttpTimer === -1) return;
         processApprove(data);
         setupTimer();
-      }, 2000);
+      }, 3000);
     };
 
-    // If socket disconnect with error, fallback to http
-    socket.onerror = (e) => {
-      if (fallbackHttpTimer != null) return;
-      setupTimer();
-    };
+    setupTimer();
 
     socket.onmessage = (e) => {
-      console.log(e);
+      console.log("Message", e);
       if (e.data == null) return;
       try {
         const data = JSON.parse(e.data);

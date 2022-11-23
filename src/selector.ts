@@ -1,6 +1,5 @@
 import type {
   SignInParams,
-  WalletModuleFactory,
   WalletBehaviourFactory,
   BrowserWallet,
   Account,
@@ -45,11 +44,12 @@ export const initHereWallet: Init = async ({ store, logger, emitter, options, co
   };
 
   return {
-    async signIn({ contractId, methodNames, ...delegate }) {
+    async signIn({ contractId, methodNames, callbackUrl, ...delegate }) {
       const approve: Record<string, string> = {};
       const accessKey = KeyPair.fromRandom("ed25519");
       approve.public_key = accessKey.getPublicKey().toString();
       approve.contract_id = contractId;
+      approve.callbackUrl = callbackUrl;
       if (methodNames) {
         approve.methodNames = methodNames.pop();
       }

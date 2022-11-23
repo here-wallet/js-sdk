@@ -1,8 +1,10 @@
 import { WalletModuleFactory } from "@near-wallet-selector/core";
 import { HereWallet, initHereWallet } from "./selector";
 import { hereConfigurations } from "./utils";
-export { HereWallet } from "./selector";
 import icon from "./icon";
+
+export { HereWallet } from "./selector";
+export { popupStrategy, iframeStrategy, Strategy } from "./strategy";
 
 export function setupHereWallet({ deprecated = false, iconUrl = icon } = {}): WalletModuleFactory<HereWallet> {
   return async ({ options }) => {
