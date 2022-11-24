@@ -4,6 +4,7 @@ import { Signature } from "near-api-js/lib/utils/key_pair";
 import BN from "bn.js";
 import { AsyncHereSignDelegate } from "./async";
 import { HereConfiguration } from "./utils";
+import { Strategy } from "./strategy";
 export declare type HereWallet = InjectedWallet & {
     getHereBalance: () => Promise<BN>;
     getAvailableBalance: () => Promise<BN>;
@@ -17,6 +18,7 @@ export declare type HereWallet = InjectedWallet & {
 };
 declare type Init = WalletBehaviourFactory<HereWallet, {
     configuration: HereConfiguration;
+    strategy: () => Strategy;
 }>;
 export declare const initHereWallet: Init;
 export {};

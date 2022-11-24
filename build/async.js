@@ -15,39 +15,40 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.asyncHereSign = void 0;
 const uuid4_1 = __importDefault(require("uuid4"));
 const utils_1 = require("./utils");
-const asyncHereSign = (config, options, delegate = {}, strategy) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+const asyncHereSign = (config, options, delegate = {}) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     const requestId = (0, uuid4_1.default)();
-    const deeplink = `${config.hereConnector}/approve?request_id=${requestId}`;
-    (_a = delegate.onInitialized) === null || _a === void 0 ? void 0 : _a.call(delegate, deeplink);
-    if (delegate.forceRedirect == null || delegate.forceRedirect === true) {
-        (_b = strategy.onInitialized) === null || _b === void 0 ? void 0 : _b.call(strategy, deeplink);
-    }
-    yield (0, utils_1.createRequest)(config, requestId, options);
+    const hashsum = yield (0, utils_1.createRequest)(config, requestId, options);
     const socketApi = config.hereApi.replace("https", "wss");
     let fallbackHttpTimer = null;
+    const deeplink = `${config.hereConnector}/approve?request_id=${requestId}&hash=${hashsum}`;
+    (_a = delegate.onRequested) === null || _a === void 0 ? void 0 : _a.call(delegate, deeplink);
+    (_c = delegate === null || delegate === void 0 ? void 0 : (_b = delegate.strategy).onRequested) === null || _c === void 0 ? void 0 : _c.call(_b, deeplink);
     return new Promise((resolve, reject) => {
         let socket = null;
         const clear = () => {
-            var _a;
             fallbackHttpTimer = -1;
             clearInterval(fallbackHttpTimer);
-            (_a = strategy.onCompleted) === null || _a === void 0 ? void 0 : _a.call(strategy);
             socket === null || socket === void 0 ? void 0 : socket.close();
         };
         const processApprove = (data) => {
-            var _a;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j;
             switch (data.status) {
                 case 1:
-                    (_a = delegate.onApproving) === null || _a === void 0 ? void 0 : _a.call(delegate, deeplink);
+                    (_a = delegate.onApproving) === null || _a === void 0 ? void 0 : _a.call(delegate);
+                    (_c = delegate === null || delegate === void 0 ? void 0 : (_b = delegate.strategy).onApproving) === null || _c === void 0 ? void 0 : _c.call(_b);
                     return;
                 case 2:
                     clear();
                     reject(data);
+                    (_d = delegate.onFailed) === null || _d === void 0 ? void 0 : _d.call(delegate, data);
+                    (_f = delegate === null || delegate === void 0 ? void 0 : (_e = delegate.strategy).onFailed) === null || _f === void 0 ? void 0 : _f.call(_e, data);
                     return;
                 case 3:
                     clear();
                     resolve(data);
+                    (_g = delegate.onSuccess) === null || _g === void 0 ? void 0 : _g.call(delegate, data);
+                    (_j = delegate === null || delegate === void 0 ? void 0 : (_h = delegate.strategy).onSuccess) === null || _j === void 0 ? void 0 : _j.call(_h, data);
             }
         };
         const setupTimer = () => {
@@ -78,10 +79,8 @@ const asyncHereSign = (config, options, delegate = {}, strategy) => __awaiter(vo
                     const data = JSON.parse(e.data);
                     processApprove(data);
                 }
-                catch (err) {
-                    // backend return incorrect data = cancel signing
-                    reject(err);
-                    clear();
+                catch (_a) {
+                    // nope
                 }
             };
         }

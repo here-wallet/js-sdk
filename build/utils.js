@@ -12,11 +12,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isMobile = exports.transformTransactions = exports.getHereBalance = exports.setupWalletState = exports.hereConfigurations = exports.createRequest = exports.getTransactionStatus = exports.getPublicKeys = void 0;
+exports.isMobile = exports.transformTransactions = exports.getHereBalance = exports.setupWalletState = exports.createRequest = exports.getTransactionStatus = exports.getPublicKeys = exports.hereConfigurations = void 0;
 const wallet_utils_1 = require("@near-wallet-selector/wallet-utils");
 const near_api_js_1 = require("near-api-js");
+const sha1_1 = __importDefault(require("sha1"));
 const uuid4_1 = __importDefault(require("uuid4"));
 const bn_js_1 = __importDefault(require("bn.js"));
+exports.hereConfigurations = {
+    mainnet: {
+        hereApi: "https://api.herewallet.app",
+        hereConnector: "https://web.herewallet.app",
+        hereContract: "storage.herewallet.near",
+        download: "https://appstore.herewallet.app/selector",
+    },
+    testnet: {
+        hereApi: "https://api.testnet.herewallet.app",
+        hereConnector: "https://web.testnet.herewallet.app",
+        hereContract: "storage.herewallet.testnet",
+        download: "https://testflight.apple.com/join/LwvGXAK8",
+    },
+};
 const topicId = window.localStorage.getItem("herewallet-topic") || (0, uuid4_1.default)();
 window.localStorage.setItem("herewallet-topic", topicId);
 const getPublicKeys = (rpc, accountId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -54,7 +69,7 @@ const getTransactionStatus = (api, request) => __awaiter(void 0, void 0, void 0,
     return yield res.json();
 });
 exports.getTransactionStatus = getTransactionStatus;
-const createRequest = (config, request, options) => {
+const createRequest = (config, request, options) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const query = new URLSearchParams(options);
     query.append("request_id", request);
@@ -65,7 +80,9 @@ const createRequest = (config, request, options) => {
     catch (_b) {
         //
     }
-    return fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
+    const transaction = `${config.hereConnector}/approve?${query}`;
+    const hashsum = (0, sha1_1.default)(transaction);
+    const res = yield fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
         method: "POST",
         body: JSON.stringify({
             transaction: `${config.hereConnector}/approve?${query}`,
@@ -76,22 +93,12 @@ const createRequest = (config, request, options) => {
             "content-type": "application/json",
         },
     });
-};
+    if (res.ok === false) {
+        throw Error(yield res.text());
+    }
+    return hashsum;
+});
 exports.createRequest = createRequest;
-exports.hereConfigurations = {
-    mainnet: {
-        hereApi: "https://api.herewallet.app",
-        hereConnector: "https://web.herewallet.app",
-        hereContract: "storage.herewallet.near",
-        download: "https://appstore.herewallet.app/selector",
-    },
-    testnet: {
-        hereApi: "https://api.testnet.herewallet.app",
-        hereConnector: "https://web.testnet.herewallet.app",
-        hereContract: "storage.herewallet.testnet",
-        download: "https://testflight.apple.com/join/LwvGXAK8",
-    },
-};
 const setupWalletState = (config, network) => __awaiter(void 0, void 0, void 0, function* () {
     const keyStore = new near_api_js_1.keyStores.BrowserLocalStorageKeyStore();
     const near = yield (0, near_api_js_1.connect)(Object.assign({ keyStore, walletUrl: config.hereConnector, headers: {} }, network));

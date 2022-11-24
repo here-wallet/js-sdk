@@ -1,10 +1,11 @@
 import { Network, Optional, Transaction } from "@near-wallet-selector/core";
 import { createAction } from "@near-wallet-selector/wallet-utils";
 import { utils, connect, keyStores, WalletConnection, transactions as nearTransactions } from "near-api-js";
+import sha1 from "sha1";
 
 import uuid4 from "uuid4";
 import BN from "bn.js";
-import { AsyncHereSignResult } from "./async";
+import { AsyncHereSignResult, DefaultStrategy, Strategy } from "./strategy";
 
 export interface HereWalletState {
   wallet: WalletConnection;
@@ -17,6 +18,21 @@ export interface HereConfiguration {
   hereContract: string;
   download: string;
 }
+
+export const hereConfigurations: Record<string, HereConfiguration> = {
+  mainnet: {
+    hereApi: "https://api.herewallet.app",
+    hereConnector: "https://web.herewallet.app",
+    hereContract: "storage.herewallet.near",
+    download: "https://appstore.herewallet.app/selector",
+  },
+  testnet: {
+    hereApi: "https://api.testnet.herewallet.app",
+    hereConnector: "https://web.testnet.herewallet.app",
+    hereContract: "storage.herewallet.testnet",
+    download: "https://testflight.apple.com/join/LwvGXAK8",
+  },
+};
 
 const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
 window.localStorage.setItem("herewallet-topic", topicId);
@@ -63,7 +79,7 @@ export const getTransactionStatus = async (api: string, request: string): Promis
   return await res.json();
 };
 
-export const createRequest = (config: HereConfiguration, request: string, options: Record<string, string>) => {
+export const createRequest = async (config: HereConfiguration, request: string, options: Record<string, string>) => {
   const query = new URLSearchParams(options);
   query.append("request_id", request);
 
@@ -74,7 +90,10 @@ export const createRequest = (config: HereConfiguration, request: string, option
     //
   }
 
-  return fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
+  const transaction = `${config.hereConnector}/approve?${query}`;
+  const hashsum = sha1(transaction);
+
+  const res = await fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
     method: "POST",
     body: JSON.stringify({
       transaction: `${config.hereConnector}/approve?${query}`,
@@ -85,22 +104,15 @@ export const createRequest = (config: HereConfiguration, request: string, option
       "content-type": "application/json",
     },
   });
+
+  if (res.ok === false) {
+    throw Error(await res.text());
+  }
+
+  return hashsum;
 };
 
-export const hereConfigurations: Record<string, HereConfiguration> = {
-  mainnet: {
-    hereApi: "https://api.herewallet.app",
-    hereConnector: "https://web.herewallet.app",
-    hereContract: "storage.herewallet.near",
-    download: "https://appstore.herewallet.app/selector",
-  },
-  testnet: {
-    hereApi: "https://api.testnet.herewallet.app",
-    hereConnector: "https://web.testnet.herewallet.app",
-    hereContract: "storage.herewallet.testnet",
-    download: "https://testflight.apple.com/join/LwvGXAK8",
-  },
-};
+
 
 export const setupWalletState = async (config: HereConfiguration, network: Network): Promise<HereWalletState> => {
   const keyStore = new keyStores.BrowserLocalStorageKeyStore();

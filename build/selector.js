@@ -51,8 +51,7 @@ const borsh = __importStar(require("borsh"));
 const bn_js_1 = __importDefault(require("bn.js"));
 const async_1 = require("./async");
 const utils_1 = require("./utils");
-const strategy_1 = require("./strategy");
-const initHereWallet = ({ store, logger, emitter, options, configuration }) => __awaiter(void 0, void 0, void 0, function* () {
+const initHereWallet = ({ store, logger, emitter, options, configuration, strategy }) => __awaiter(void 0, void 0, void 0, function* () {
     const _state = yield (0, utils_1.setupWalletState)(configuration, options.network);
     const getAccounts = () => {
         const accountId = _state.wallet.getAccountId();
@@ -60,34 +59,43 @@ const initHereWallet = ({ store, logger, emitter, options, configuration }) => _
     };
     return {
         signIn(_a) {
-            var { contractId, methodNames = [] } = _a, _delegate = __rest(_a, ["contractId", "methodNames"]);
+            var _b, _c, _d, _e, _f, _g, _h;
+            var { contractId, methodNames = [] } = _a, delegate = __rest(_a, ["contractId", "methodNames"]);
             return __awaiter(this, void 0, void 0, function* () {
-                const delegate = _delegate;
-                const strategy = (delegate.strategy || strategy_1.popupStrategy)();
-                const approve = {};
-                const accessKey = near_api_js_1.KeyPair.fromRandom("ed25519");
-                approve["public_key"] = accessKey.getPublicKey().toString();
-                approve["contract_id"] = contractId;
-                const method = methodNames === null || methodNames === void 0 ? void 0 : methodNames.pop();
-                if (method) {
-                    approve["methodNames"] = method;
+                try {
+                    delegate.strategy = (_b = delegate.strategy) !== null && _b !== void 0 ? _b : strategy();
+                    (_c = delegate.onInitialized) === null || _c === void 0 ? void 0 : _c.call(delegate);
+                    (_e = (_d = delegate.strategy) === null || _d === void 0 ? void 0 : _d.onInitialized) === null || _e === void 0 ? void 0 : _e.call(_d);
+                    const approve = {};
+                    const accessKey = near_api_js_1.KeyPair.fromRandom("ed25519");
+                    approve["public_key"] = accessKey.getPublicKey().toString();
+                    approve["contract_id"] = contractId;
+                    const method = methodNames === null || methodNames === void 0 ? void 0 : methodNames.pop();
+                    if (method) {
+                        approve["methodNames"] = method;
+                    }
+                    const data = yield (0, async_1.asyncHereSign)(configuration, approve, delegate);
+                    if (data.account_id) {
+                        const keysData = yield (0, utils_1.getPublicKeys)(options.network.nodeUrl, data.account_id);
+                        const keys = keysData.filter((key) => { var _a; return ((_a = key.access_key) === null || _a === void 0 ? void 0 : _a.permission) === "FullAccess"; });
+                        const fullKey = keys.pop();
+                        const wallet = _state.wallet;
+                        wallet._authData = {
+                            accountId: data.account_id,
+                            allKeys: fullKey ? [fullKey.public_key] : [],
+                        };
+                        window.localStorage.setItem(wallet._authDataKey, JSON.stringify(wallet._authData));
+                        yield wallet._keyStore.setKey(wallet._networkId, data.account_id, accessKey);
+                    }
+                    const accounts = getAccounts();
+                    emitter.emit("signedIn", { contractId, methodNames, accounts });
+                    return accounts;
                 }
-                const data = yield (0, async_1.asyncHereSign)(configuration, approve, delegate, strategy);
-                if (data.account_id) {
-                    const keysData = yield (0, utils_1.getPublicKeys)(options.network.nodeUrl, data.account_id);
-                    const keys = keysData.filter((key) => { var _a; return ((_a = key.access_key) === null || _a === void 0 ? void 0 : _a.permission) === "FullAccess"; });
-                    const fullKey = keys.pop();
-                    const wallet = _state.wallet;
-                    wallet._authData = {
-                        accountId: data.account_id,
-                        allKeys: fullKey ? [fullKey.public_key] : [],
-                    };
-                    window.localStorage.setItem(wallet._authDataKey, JSON.stringify(wallet._authData));
-                    yield wallet._keyStore.setKey(wallet._networkId, data.account_id, accessKey);
+                catch (error) {
+                    (_f = delegate.onFailed) === null || _f === void 0 ? void 0 : _f.call(delegate, error);
+                    (_h = delegate === null || delegate === void 0 ? void 0 : (_g = delegate.strategy).onFailed) === null || _h === void 0 ? void 0 : _h.call(_g, error);
+                    throw error;
                 }
-                const accounts = getAccounts();
-                emitter.emit("signedIn", { contractId, methodNames, accounts });
-                return accounts;
             });
         },
         getHereBalance() {
@@ -115,38 +123,47 @@ const initHereWallet = ({ store, logger, emitter, options, configuration }) => _
             });
         },
         signAndSendTransaction(_a) {
-            var { signerId, receiverId, actions: _actions } = _a, _delegate = __rest(_a, ["signerId", "receiverId", "actions"]);
+            var _b, _c, _d, _e, _f, _g, _h;
+            var { signerId, receiverId, actions: _actions } = _a, delegate = __rest(_a, ["signerId", "receiverId", "actions"]);
             return __awaiter(this, void 0, void 0, function* () {
-                logger.log("HereWallet:signAndSendTransaction", Object.assign({ signerId,
-                    receiverId, actions: _actions }, _delegate));
-                const delegate = _delegate;
-                const strategy = (delegate.strategy || strategy_1.popupStrategy)();
-                const { contract } = store.getState();
-                if (!_state.wallet.isSignedIn() || !contract) {
-                    throw new Error("Wallet not signed in");
+                try {
+                    delegate.strategy = (_b = delegate.strategy) !== null && _b !== void 0 ? _b : strategy();
+                    (_c = delegate.onInitialized) === null || _c === void 0 ? void 0 : _c.call(delegate);
+                    (_e = (_d = delegate.strategy) === null || _d === void 0 ? void 0 : _d.onInitialized) === null || _e === void 0 ? void 0 : _e.call(_d);
+                    logger.log("HereWallet:signAndSendTransaction", Object.assign({ signerId,
+                        receiverId, actions: _actions }, delegate));
+                    const { contract } = store.getState();
+                    if (!_state.wallet.isSignedIn() || !contract) {
+                        throw new Error("Wallet not signed in");
+                    }
+                    const wallet = _state.wallet;
+                    const account = wallet.account();
+                    const connection = account.connection;
+                    const actions = _actions.map((action) => (0, wallet_utils_1.createAction)(action));
+                    const localKey = yield connection.signer.getPublicKey(account.accountId, connection.networkId);
+                    const accessKey = yield account.accessKeyForTransaction(receiverId !== null && receiverId !== void 0 ? receiverId : "", actions, localKey);
+                    if (!accessKey) {
+                        throw new Error(`Cannot find matching key for transaction sent to ${receiverId}`);
+                    }
+                    const block = yield connection.provider.block({ finality: "final" });
+                    const blockHash = borsh.baseDecode(block.header.hash);
+                    const publicKey = key_pair_1.PublicKey.from(accessKey.public_key);
+                    const nonce = accessKey.access_key.nonce + 1;
+                    const transaction = (0, transaction_1.createTransaction)(account.accountId, publicKey, receiverId || contract.contractId, nonce, actions, blockHash);
+                    const config = {
+                        transactions: Buffer.from(borsh.serialize(transaction_1.SCHEMA, transaction)).toString("base64"),
+                    };
+                    const data = yield (0, async_1.asyncHereSign)(configuration, config, delegate);
+                    if (data.transaction_hash == null) {
+                        throw Error("Transaction not found, but maybe executed");
+                    }
+                    return yield account.connection.provider.txStatus(data.transaction_hash, account.accountId);
                 }
-                const wallet = _state.wallet;
-                const account = wallet.account();
-                const connection = account.connection;
-                const actions = _actions.map((action) => (0, wallet_utils_1.createAction)(action));
-                const localKey = yield connection.signer.getPublicKey(account.accountId, connection.networkId);
-                const accessKey = yield account.accessKeyForTransaction(receiverId !== null && receiverId !== void 0 ? receiverId : "", actions, localKey);
-                if (!accessKey) {
-                    throw new Error(`Cannot find matching key for transaction sent to ${receiverId}`);
+                catch (error) {
+                    (_f = delegate.onFailed) === null || _f === void 0 ? void 0 : _f.call(delegate, error);
+                    (_h = delegate === null || delegate === void 0 ? void 0 : (_g = delegate.strategy).onFailed) === null || _h === void 0 ? void 0 : _h.call(_g, error);
+                    throw error;
                 }
-                const block = yield connection.provider.block({ finality: "final" });
-                const blockHash = borsh.baseDecode(block.header.hash);
-                const publicKey = key_pair_1.PublicKey.from(accessKey.public_key);
-                const nonce = accessKey.access_key.nonce + 1;
-                const transaction = (0, transaction_1.createTransaction)(account.accountId, publicKey, receiverId || contract.contractId, nonce, actions, blockHash);
-                const config = {
-                    transactions: Buffer.from(borsh.serialize(transaction_1.SCHEMA, transaction)).toString("base64"),
-                };
-                const data = yield (0, async_1.asyncHereSign)(configuration, config, delegate, strategy);
-                if (data.transaction_hash == null) {
-                    throw Error("Transaction not found, but maybe executed");
-                }
-                return yield account.connection.provider.txStatus(data.transaction_hash, account.accountId);
             });
         },
         verifyOwner() {
@@ -169,26 +186,36 @@ const initHereWallet = ({ store, logger, emitter, options, configuration }) => _
             });
         },
         signAndSendTransactions(_a) {
-            var { transactions } = _a, _delegate = __rest(_a, ["transactions"]);
+            var _b, _c, _d, _e, _f, _g, _h;
+            var { transactions } = _a, delegate = __rest(_a, ["transactions"]);
             return __awaiter(this, void 0, void 0, function* () {
-                logger.log("HereWallet:signAndSendTransactions", Object.assign({ transactions }, _delegate));
-                if (!_state.wallet.isSignedIn()) {
-                    throw new Error("Wallet not signed in");
+                try {
+                    delegate.strategy = (_b = delegate.strategy) !== null && _b !== void 0 ? _b : strategy();
+                    (_c = delegate.onInitialized) === null || _c === void 0 ? void 0 : _c.call(delegate);
+                    (_e = (_d = delegate.strategy) === null || _d === void 0 ? void 0 : _d.onInitialized) === null || _e === void 0 ? void 0 : _e.call(_d);
+                    logger.log("HereWallet:signAndSendTransactions", Object.assign({ transactions }, delegate));
+                    if (!_state.wallet.isSignedIn()) {
+                        throw new Error("Wallet not signed in");
+                    }
+                    const trxs = yield (0, utils_1.transformTransactions)(_state, transactions);
+                    const config = {
+                        transactions: trxs.map((t) => Buffer.from(borsh.serialize(transaction_1.SCHEMA, t)).toString("base64")).join(","),
+                    };
+                    const data = yield (0, async_1.asyncHereSign)(configuration, config, delegate);
+                    if (data.transaction_hash == null) {
+                        throw Error("Transaction not found, but maybe executed");
+                    }
+                    const wallet = _state.wallet;
+                    const account = wallet.account();
+                    const provider = account.connection.provider;
+                    const promises = data.transaction_hash.split(",").map((id) => provider.txStatus(id, account.accountId));
+                    return yield Promise.all(promises);
                 }
-                const delegate = _delegate;
-                const strategy = (delegate.strategy || strategy_1.popupStrategy)();
-                const trxs = yield (0, utils_1.transformTransactions)(_state, transactions);
-                const config = {
-                    transactions: trxs.map((t) => Buffer.from(borsh.serialize(transaction_1.SCHEMA, t)).toString("base64")).join(","),
-                };
-                const data = yield (0, async_1.asyncHereSign)(configuration, config, delegate, strategy);
-                if (data.transaction_hash == null) {
-                    throw Error("Transaction not found, but maybe executed");
+                catch (error) {
+                    (_f = delegate.onFailed) === null || _f === void 0 ? void 0 : _f.call(delegate, error);
+                    (_h = delegate === null || delegate === void 0 ? void 0 : (_g = delegate.strategy).onFailed) === null || _h === void 0 ? void 0 : _h.call(_g, error);
+                    throw error;
                 }
-                const wallet = _state.wallet;
-                const account = wallet.account();
-                const provider = account.connection.provider;
-                return yield Promise.all(data.transaction_hash.split(",").map((id) => provider.txStatus(id, account.accountId)));
             });
         },
     };
