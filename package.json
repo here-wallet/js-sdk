@@ -1,6 +1,6 @@
 {
   "name": "@here-wallet/near-selector",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",

@@ -1,5 +1,5 @@
 import uuid4 from "uuid4";
-import { popupStrategy, Strategy } from "./strategy";
+import { Strategy } from "./strategy";
 import { createRequest, getTransactionStatus, HereConfiguration, isMobile } from "./utils";
 
 export interface AsyncHereSignDelegate {
@@ -12,38 +12,39 @@ export interface AsyncHereSignDelegate {
 export interface AsyncHereSignResult {
   public_key?: string;
   account_id: string;
-  transaction_hash: string;
+  transaction_hash?: string;
+  status: number;
 }
 
 export const asyncHereSign = async (
   config: HereConfiguration,
   options: Record<string, string>,
-  delegate: AsyncHereSignDelegate = {}
+  delegate: AsyncHereSignDelegate = {},
+  strategy: Strategy
 ): Promise<AsyncHereSignResult> => {
   const requestId = uuid4();
   const deeplink = `${config.hereConnector}/approve?request_id=${requestId}`;
-  await createRequest(config, requestId, options);
-
-  const strategy = (delegate.strategy ?? popupStrategy)();
-  const socketApi = config.hereApi.replace("https", "wss");
-  const endpoint = `${socketApi}/api/v1/web/ws/transaction_approved/${requestId}`;
-  const socket = new WebSocket(endpoint);
-  let fallbackHttpTimer;
 
   delegate.onInitialized?.(deeplink);
   if (delegate.forceRedirect == null || delegate.forceRedirect === true) {
     strategy.onInitialized?.(deeplink);
   }
 
+  await createRequest(config, requestId, options);
+  const socketApi = config.hereApi.replace("https", "wss");
+  let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
+
   return new Promise((resolve, reject) => {
+    let socket: WebSocket | null = null;
+
     const clear = () => {
       fallbackHttpTimer = -1;
       clearInterval(fallbackHttpTimer);
       strategy.onCompleted?.();
-      socket.close();
+      socket?.close();
     };
 
-    const processApprove = (data) => {
+    const processApprove = (data: AsyncHereSignResult) => {
       switch (data.status) {
         case 1:
           delegate.onApproving?.(deeplink);
@@ -59,28 +60,39 @@ export const asyncHereSign = async (
     };
 
     const setupTimer = () => {
-      if (fallbackHttpTimer === -1) return;
+      if (fallbackHttpTimer === -1) {
+        return;
+      }
+
       fallbackHttpTimer = setTimeout(async () => {
-        const data = await getTransactionStatus(config.hereApi, requestId).catch(() => {});
-        if (fallbackHttpTimer === -1) return;
-        processApprove(data);
-        setupTimer();
+        try {
+          const data = await getTransactionStatus(config.hereApi, requestId);
+          if (fallbackHttpTimer === -1) return;
+          processApprove(data);
+        } finally {
+          setupTimer();
+        }
       }, 3000);
     };
 
     setupTimer();
 
-    socket.onmessage = (e) => {
-      console.log("Message", e);
-      if (e.data == null) return;
-      try {
-        const data = JSON.parse(e.data);
-        processApprove(data);
-      } catch (e) {
-        // backend return incorrect data = cancel signing
-        reject(e);
-        clear();
-      }
-    };
+    // Mobile flow doesn't support cross tabs socket background process
+    if (isMobile() === false) {
+      const endpoint = `${socketApi}/api/v1/web/ws/transaction_approved/${requestId}`;
+      socket = new WebSocket(endpoint);
+      socket.onmessage = (e) => {
+        if (e.data == null) return;
+
+        try {
+          const data = JSON.parse(e.data);
+          processApprove(data);
+        } catch (err) {
+          // backend return incorrect data = cancel signing
+          reject(err);
+          clear();
+        }
+      };
+    }
   });
 };

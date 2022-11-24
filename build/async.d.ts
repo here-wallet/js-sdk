@@ -9,6 +9,7 @@ export interface AsyncHereSignDelegate {
 export interface AsyncHereSignResult {
     public_key?: string;
     account_id: string;
-    transaction_hash: string;
+    transaction_hash?: string;
+    status: number;
 }
-export declare const asyncHereSign: (config: HereConfiguration, options: Record<string, string>, delegate?: AsyncHereSignDelegate) => Promise<AsyncHereSignResult>;
+export declare const asyncHereSign: (config: HereConfiguration, options: Record<string, string>, delegate: AsyncHereSignDelegate, strategy: Strategy) => Promise<AsyncHereSignResult>;

@@ -1,22 +1,20 @@
-import { isMobile } from "./utils";
-
 export interface Strategy {
   onInitialized?: (link: string) => void;
   onCompleted?: () => void;
 }
 
 export const popupStrategy = (): Strategy => {
-  let signWindow: Window | null = null;
-  let unloadHandler: () => void | null = null;
+  const left = window.innerWidth / 2 - 400 / 2;
+  const top = window.innerHeight / 2 - 700 / 2 + 48;
+  const signWindow = window.open("about:blank", "_blank", `popup=1,width=400,height=700,top=${top},left=${left}`);
+  let unloadHandler: () => void;
 
   return {
     onInitialized(link) {
-      if (isMobile()) {
-        window.location.href = link;
-      } else {
-        signWindow = window.open(link, "_blank");
-        unloadHandler = () => signWindow?.close();
-        window.addEventListener("beforeunload", unloadHandler);
+      unloadHandler = () => signWindow?.close();
+      window.addEventListener("beforeunload", unloadHandler);
+      if (signWindow) {
+        signWindow.location = link;
       }
     },
 
@@ -28,7 +26,7 @@ export const popupStrategy = (): Strategy => {
 };
 
 export const iframeStrategy = (): Strategy => {
-  let iframe = document.createElement("iframe");
+  const iframe = document.createElement("iframe");
 
   return {
     onInitialized(link) {

@@ -10,6 +10,7 @@ const uikit = {
   connectBtn: document.getElementById("connect")!,
   qrcode: document.getElementById("qrcode")!,
   account: document.getElementById("account-id")!,
+  fnCallBtn: document.getElementById("function-call"),
 };
 
 const setup = async () => {
@@ -47,30 +48,24 @@ const setup = async () => {
   const nick = accounts[0]?.accountId;
   uikit.account.innerHTML = `Hello ${accounts[0]?.accountId}!`;
 
-  // After login you can sign transactions with same way
-  const result = await here.signAndSendTransaction({
-    receiverId: "social.near",
-    actions: [
-      {
-        type: "FunctionCall",
-        params: {
-          methodName: "set",
-          args: { data: { [nick]: { profile: { hereUser: "yes" } } } },
-          gas: "30000000000000",
-          deposit: "1",
+  uikit.fnCallBtn?.addEventListener("click", async () => {
+    const result = await here.signAndSendTransaction({
+      receiverId: "social.near",
+      actions: [
+        {
+          type: "FunctionCall",
+          params: {
+            methodName: "set",
+            args: { data: { [nick]: { profile: { hereUser: "yes" } } } },
+            gas: "30000000000000",
+            deposit: "1",
+          },
         },
-      },
-    ],
+      ],
+    });
 
-    forceRedirect: false,
-    onApproving: () => console.log("Approving!..."),
-    onInitialized: (link) => {
-      console.log("signAndSendTransaction", link);
-      QRCode.toCanvas(uikit.qrcode, link);
-    },
+    console.log(result);
   });
-
-  console.log(result);
 };
 
 setup();

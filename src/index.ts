@@ -15,10 +15,11 @@ export function setupHereWallet({ deprecated = false, iconUrl = icon } = {}): Wa
 
     return {
       id: "here-wallet",
-      type: "browser",
+      type: "injected",
       metadata: {
         name: "Here Wallet (mobile)",
         description: "Mobile wallet for NEAR Protocol",
+        downloadUrl: configuration.download,
         iconUrl,
         deprecated,
         available: true,

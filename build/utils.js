@@ -19,22 +19,29 @@ const uuid4_1 = __importDefault(require("uuid4"));
 const bn_js_1 = __importDefault(require("bn.js"));
 const topicId = window.localStorage.getItem("herewallet-topic") || (0, uuid4_1.default)();
 window.localStorage.setItem("herewallet-topic", topicId);
-const getPublicKeys = (rpc, accountId) => fetch(rpc, {
-    method: "POST",
-    body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: "dontcare",
-        method: "query",
-        params: {
-            request_type: "view_access_key_list",
-            finality: "final",
-            account_id: accountId,
+const getPublicKeys = (rpc, accountId) => __awaiter(void 0, void 0, void 0, function* () {
+    const res = yield fetch(rpc, {
+        method: "POST",
+        body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: "dontcare",
+            method: "query",
+            params: {
+                request_type: "view_access_key_list",
+                finality: "final",
+                account_id: accountId,
+            },
+        }),
+        headers: {
+            "content-type": "application/json",
         },
-    }),
-    headers: {
-        "content-type": "application/json",
-    },
-}).then((r) => r.json());
+    });
+    if (res.ok === false) {
+        return [];
+    }
+    const data = yield res.json();
+    return data.result.keys;
+});
 exports.getPublicKeys = getPublicKeys;
 const getTransactionStatus = (api, request) => __awaiter(void 0, void 0, void 0, function* () {
     const res = yield fetch(`${api}/api/v1/web/web_request?request_id=${request}`, {
@@ -55,7 +62,9 @@ const createRequest = (config, request, options) => {
         const host = (_a = new URL(document.referrer).hostname) !== null && _a !== void 0 ? _a : "";
         query.append("referrer", host);
     }
-    catch (_b) { }
+    catch (_b) {
+        //
+    }
     return fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
         method: "POST",
         body: JSON.stringify({
@@ -74,11 +83,13 @@ exports.hereConfigurations = {
         hereApi: "https://api.herewallet.app",
         hereConnector: "https://web.herewallet.app",
         hereContract: "storage.herewallet.near",
+        download: "https://appstore.herewallet.app/selector",
     },
     testnet: {
         hereApi: "https://api.testnet.herewallet.app",
         hereConnector: "https://web.testnet.herewallet.app",
         hereContract: "storage.herewallet.testnet",
+        download: "https://testflight.apple.com/join/LwvGXAK8",
     },
 };
 const setupWalletState = (config, network) => __awaiter(void 0, void 0, void 0, function* () {

@@ -4,6 +4,7 @@ import { utils, connect, keyStores, WalletConnection, transactions as nearTransa
 
 import uuid4 from "uuid4";
 import BN from "bn.js";
+import { AsyncHereSignResult } from "./async";
 
 export interface HereWalletState {
   wallet: WalletConnection;
@@ -14,13 +15,17 @@ export interface HereConfiguration {
   hereApi: string;
   hereConnector: string;
   hereContract: string;
+  download: string;
 }
 
 const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
 window.localStorage.setItem("herewallet-topic", topicId);
 
-export const getPublicKeys = (rpc: string, accountId) =>
-  fetch(rpc, {
+export const getPublicKeys = async (
+  rpc: string,
+  accountId: string
+): Promise<Array<{ public_key: string; access_key: { permission: string } }>> => {
+  const res = await fetch(rpc, {
     method: "POST",
     body: JSON.stringify({
       jsonrpc: "2.0",
@@ -35,9 +40,17 @@ export const getPublicKeys = (rpc: string, accountId) =>
     headers: {
       "content-type": "application/json",
     },
-  }).then((r) => r.json());
+  });
 
-export const getTransactionStatus = async (api: string, request) => {
+  if (res.ok === false) {
+    return [];
+  }
+
+  const data = await res.json();
+  return data.result.keys;
+};
+
+export const getTransactionStatus = async (api: string, request: string): Promise<AsyncHereSignResult> => {
   const res = await fetch(`${api}/api/v1/web/web_request?request_id=${request}`, {
     method: "GET",
     headers: { "content-type": "application/json" },
@@ -57,7 +70,9 @@ export const createRequest = (config: HereConfiguration, request: string, option
   try {
     const host = new URL(document.referrer).hostname ?? "";
     query.append("referrer", host);
-  } catch {}
+  } catch {
+    //
+  }
 
   return fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
     method: "POST",
@@ -77,11 +92,13 @@ export const hereConfigurations: Record<string, HereConfiguration> = {
     hereApi: "https://api.herewallet.app",
     hereConnector: "https://web.herewallet.app",
     hereContract: "storage.herewallet.near",
+    download: "https://appstore.herewallet.app/selector",
   },
   testnet: {
     hereApi: "https://api.testnet.herewallet.app",
     hereConnector: "https://web.testnet.herewallet.app",
     hereContract: "storage.herewallet.testnet",
+    download: "https://testflight.apple.com/join/LwvGXAK8",
   },
 };
 
