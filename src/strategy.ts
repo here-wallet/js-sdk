@@ -1,16 +1,12 @@
-export interface AsyncHereSignResult {
-  public_key?: string;
-  account_id: string;
-  transaction_hash?: string;
-  status: number;
-}
+import { HereProviderResult } from "./provider";
 
 export interface Strategy {
   onInitialized?: () => void;
   onRequested?: (link: string) => void;
-  onApproving?: () => void;
-  onSuccess?: (result: AsyncHereSignResult) => void;
-  onFailed?: (e: unknown) => void;
+  onApproving?: (result: HereProviderResult) => void;
+  onSuccess?: (result: HereProviderResult) => void;
+  onFailed?: (result: HereProviderResult) => void;
+  onReject?: (result: HereProviderResult) => void;
 }
 
 export class DefaultStrategy implements Strategy {

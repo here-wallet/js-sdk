@@ -4,7 +4,8 @@ import "@near-wallet-selector/modal-ui-js/styles.css";
 import { setupWalletSelector, WalletSelector } from "@near-wallet-selector/core";
 import { setupNearWallet } from "@near-wallet-selector/near-wallet";
 import { setupModal } from "@near-wallet-selector/modal-ui-js";
-import { Strategy, HereWallet, setupHereWallet } from "../src/index";
+import { HereWallet, setupHereWallet } from "../src/index";
+import { QRCodeStrategy } from "../src/qrcode-strategy";
 
 const uikit = {
   connectBtn: document.getElementById("connect")!,
@@ -26,24 +27,16 @@ const uikit = {
   },
 };
 
-class QRCodeStrategy implements Strategy {
-  onRequested(link) {
-    console.log("asyncSignIn", link);
-    QRCode.toCanvas(uikit.qrcode, link);
-    uikit.qrcode.style.display = "block";
-  }
-
-  onSucessed() {
-    uikit.qrcode.style.display = "none";
-  }
-}
-
 // Instant wallet signin HERE!
 const instantSignin = async (selector: WalletSelector) => {
   const here = await selector.wallet<HereWallet>("here-wallet");
   await here.signIn({
     contractId: "social.near",
-    strategy: new QRCodeStrategy(), // override new window
+    strategy: new QRCodeStrategy({ element: uikit.qrcode }), // override new window
+    onApproving: (r) => console.log("onApproving", r),
+    onSuccess: (r) => console.log("onSuccess", r),
+    onFailed: (r) => console.log("onFailed", r),
+    onReject: (r) => console.log("onReject", r),
   });
 };
 

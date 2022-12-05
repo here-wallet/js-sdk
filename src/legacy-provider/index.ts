@@ -1,27 +1,20 @@
 import uuid4 from "uuid4";
-import { AsyncHereSignResult, Strategy } from "./strategy";
-import { createRequest, getTransactionStatus, HereConfiguration, isMobile } from "./utils";
+import { isMobile } from "../utils";
+import { HereProvider, HereProviderResult, HereProviderStatus } from "../provider";
+import { createRequest, getTransactionStatus } from "./methods";
 
-export interface AsyncHereSignDelegate extends Strategy {
-  strategy?: Strategy;
-}
-
-export const asyncHereSign = async (
-  config: HereConfiguration,
-  options: Record<string, string>,
-  delegate: AsyncHereSignDelegate = {}
-): Promise<AsyncHereSignResult> => {
+export const legacyProvider: HereProvider = async ({ strategy, state, args, ...delegate }) => {
   const requestId = uuid4();
 
-  const hashsum = await createRequest(config, requestId, options);
-  const socketApi = config.hereApi.replace("https", "wss");
+  await createRequest(state, requestId, args);
+  const socketApi = state.hereApi.replace("https", "wss");
   let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
 
-  const deeplink = `${config.hereConnector}/approve?request_id=${requestId}&hash=${hashsum}`;
+  const deeplink = `${state.hereConnector}/approve?request_id=${requestId}`;
   delegate.onRequested?.(deeplink);
-  delegate?.strategy.onRequested?.(deeplink);
+  strategy.onRequested?.(deeplink);
 
-  return new Promise((resolve, reject) => {
+  return new Promise<HereProviderResult>((resolve, reject) => {
     let socket: WebSocket | null = null;
 
     const clear = () => {
@@ -30,23 +23,33 @@ export const asyncHereSign = async (
       socket?.close();
     };
 
-    const processApprove = (data: AsyncHereSignResult) => {
+    const processApprove = (data: HereProviderResult) => {
       switch (data.status) {
-        case 1:
-          delegate.onApproving?.();
-          delegate?.strategy.onApproving?.();
+        case HereProviderStatus.APPROVING:
+          delegate.onApproving?.(data);
+          strategy.onApproving?.(data);
           return;
-        case 2:
+
+        case HereProviderStatus.FAILED:
           clear();
           reject(data);
           delegate.onFailed?.(data);
-          delegate?.strategy.onFailed?.(data);
+          strategy.onFailed?.(data);
           return;
-        case 3:
+
+        case HereProviderStatus.SUCCESS:
           clear();
           resolve(data);
           delegate.onSuccess?.(data);
-          delegate?.strategy.onSuccess?.(data);
+          strategy.onSuccess?.(data);
+          return;
+
+        case HereProviderStatus.REJECT:
+          clear();
+          resolve(data);
+          delegate.onReject?.(data);
+          strategy.onReject?.(data);
+          return;
       }
     };
 
@@ -57,7 +60,7 @@ export const asyncHereSign = async (
 
       fallbackHttpTimer = setTimeout(async () => {
         try {
-          const data = await getTransactionStatus(config.hereApi, requestId);
+          const data = await getTransactionStatus(state.hereApi, requestId);
           if (fallbackHttpTimer === -1) return;
           processApprove(data);
         } finally {

@@ -4,6 +4,12 @@
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "exports": {
+    "./index": "./build/index.js",
+    "./qrcode-strategy/*": "./build/qrcode-strategy/*",
+    "./legacy-provider/*": "./build/legacy-provider/*",
+    "./here-provider/*": "./build/here-provider/*"
+  },
   "homepage": "https://github.com/here-wallet/near-selector",
   "repository": {
     "type": "git",
