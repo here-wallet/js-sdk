@@ -30,13 +30,13 @@ const uikit = {
 // Instant wallet signin HERE!
 const instantSignin = async (selector: WalletSelector) => {
   const here = await selector.wallet<HereWallet>("here-wallet");
+
   await here.signIn({
     contractId: "social.near",
     strategy: new QRCodeStrategy({ element: uikit.qrcode }), // override new window
     onApproving: (r) => console.log("onApproving", r),
     onSuccess: (r) => console.log("onSuccess", r),
-    onFailed: (r) => console.log("onFailed", r),
-    onReject: (r) => console.log("onReject", r),
+    onFailed: (r) => instantSignin(selector),
   });
 };
 

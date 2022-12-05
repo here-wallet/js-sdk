@@ -5,6 +5,67 @@
     <title>HERE Wallet</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" />
+    <style>
+        * {
+            font-family: Manrope;
+        }
+    
+        body {
+            margin: 0;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            box-sizing: border-box;
+            gap: 24px;
+        }
+    
+        h1 {
+            line-break: anywhere;
+            text-align: center;
+        }
+    
+        button {
+            cursor: pointer;
+            font-family: 'Manrope';
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            padding: 12px 16px;
+            min-width: 180px;
+            gap: 8px;
+    
+            background: #f7b302;
+            height: 48px;
+    
+            border: 1px solid #2c3034;
+            box-shadow: 4px 4px 0px #2c3034;
+            border-radius: 16px;
+    
+            font-weight: 800;
+            font-size: 16px;
+            line-height: 22px;
+            text-align: center;
+            color: #2c3034;
+            text-decoration: none;
+            transition: 0.2s background;
+        }
+    
+        button:hover {
+            background: #ffcc4a;
+        }
+    
+        button:disabled {
+            cursor: default;
+            background: #f6bf4c;
+        }
+    </style>
 </head>
 
 <body>

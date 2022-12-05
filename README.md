@@ -73,6 +73,7 @@ Methods **signIn**, **signAndSendTransaction**, **signAndSendTransactions** have
 export interface AsyncHereSignDelegate {
   // DefaultStrategy by default called new window popup, you can override it
   strategy?: Strategy;
+  signal?: AbortSignal;
 
   // Just Events, called before strategy,
   // use this if you don't need to change strategy
@@ -81,7 +82,6 @@ export interface AsyncHereSignDelegate {
   onApproving?: (result: HereProviderResult) => void;
   onSuccess?: (result: HereProviderResult) => void;
   onFailed?: (result: HereProviderResult) => void;
-  onRejected?: (result: HereProviderResult) => void;
 }
 ```
 

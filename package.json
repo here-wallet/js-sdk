@@ -1,14 +1,31 @@
 {
   "name": "@here-wallet/near-selector",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "exports": {
-    "./index": "./build/index.js",
-    "./qrcode-strategy/*": "./build/qrcode-strategy/*",
-    "./legacy-provider/*": "./build/legacy-provider/*",
-    "./here-provider/*": "./build/here-provider/*"
+    ".": "./build/index.js",
+    "./utils": "./build/utils.js",
+    "./qrcode-strategy": "./build/qrcode-strategy/index.js",
+    "./legacy-provider": "./build/legacy-provider/index.js",
+    "./here-provider": "./build/here-provider/index.js"
+  },
+  "typesVersions": {
+    "*": {
+      "utils": [
+        "build/utils.d.ts"
+      ],
+      "qrcode-strategy": [
+        "build/qrcode-strategy/index.d.ts"
+      ],
+      "legacy-provider": [
+        "build/legacy-provider/index.d.ts"
+      ],
+      "here-provider": [
+        "build/here-provider/index.d.ts"
+      ]
+    }
   },
   "homepage": "https://github.com/here-wallet/near-selector",
   "repository": {
@@ -36,6 +53,8 @@
   "devDependencies": {
     "@babel/core": "7.2.0",
     "@types/bn.js": "5.1.1",
+    "@types/sha1": "^1.1.3",
+    "@types/uuid4": "^2.0.0",
     "parcel-bundler": "^1.6.1",
     "typescript": "4.4.4"
   },

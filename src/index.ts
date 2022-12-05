@@ -1,12 +1,15 @@
 import { WalletModuleFactory } from "@near-wallet-selector/core";
 import { DefaultStrategy, Strategy } from "./strategy";
 import { hereConfigurations, HereWallet } from "./state";
+import { legacyProvider } from "./legacy-provider";
 import { proxyProvider } from "./here-provider";
 import { initHereWallet } from "./selector";
 import icon from "./icon";
 
+export { icon };
 export { HereWallet } from "./state";
 export { DefaultStrategy, Strategy } from "./strategy";
+export { HereProvider, HereProviderOptions, HereProviderResult, HereProviderStatus } from "./provider";
 
 export function setupHereWallet({
   deprecated = false,
@@ -18,6 +21,10 @@ export function setupHereWallet({
     const configuration = hereConfigurations[options.network.networkId];
     if (configuration == null) {
       return null;
+    }
+
+    if (options.network.networkId === "testnet") {
+      hereProvider = legacyProvider;
     }
 
     return {

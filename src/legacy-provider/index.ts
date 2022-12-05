@@ -1,18 +1,34 @@
 import uuid4 from "uuid4";
 import { isMobile } from "../utils";
 import { HereProvider, HereProviderResult, HereProviderStatus } from "../provider";
-import { createRequest, getTransactionStatus } from "./methods";
+import { createRequest, getRequest, getTransactionStatus } from "./methods";
 
-export const legacyProvider: HereProvider = async ({ strategy, state, args, ...delegate }) => {
-  const requestId = uuid4();
+export const hereConfigurations = {
+  mainnet: {
+    hereApi: "https://api.herewallet.app",
+    hereConnector: "https://web.herewallet.app",
+  },
+  testnet: {
+    hereApi: "https://api.testnet.herewallet.app",
+    hereConnector: "https://web.testnet.herewallet.app",
+  },
+} as const;
 
-  await createRequest(state, requestId, args);
-  const socketApi = state.hereApi.replace("https", "wss");
+export const legacyProvider: HereProvider = async ({ id, strategy, signal, network, args, ...delegate }) => {
+  const { hereApi, hereConnector } = hereConfigurations[network];
+
+  if (id != null) args = await getRequest(hereApi, id, signal);
+  else {
+    id = uuid4();
+    await createRequest(hereApi, hereConnector, id, args, signal);
+  }
+
+  const socketApi = hereApi.replace("https", "wss");
   let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
 
-  const deeplink = `${state.hereConnector}/approve?request_id=${requestId}`;
-  delegate.onRequested?.(deeplink);
-  strategy.onRequested?.(deeplink);
+  const deeplink = `${hereConnector}?request_id=${id}`;
+  delegate.onRequested?.(deeplink, args);
+  strategy?.onRequested?.(deeplink, args);
 
   return new Promise<HereProviderResult>((resolve, reject) => {
     let socket: WebSocket | null = null;
@@ -23,32 +39,32 @@ export const legacyProvider: HereProvider = async ({ strategy, state, args, ...d
       socket?.close();
     };
 
+    signal?.addEventListener("abort", () =>
+      processApprove({
+        account_id: "",
+        status: HereProviderStatus.FAILED,
+      })
+    );
+
     const processApprove = (data: HereProviderResult) => {
       switch (data.status) {
         case HereProviderStatus.APPROVING:
           delegate.onApproving?.(data);
-          strategy.onApproving?.(data);
+          strategy?.onApproving?.(data);
           return;
 
         case HereProviderStatus.FAILED:
           clear();
           reject(data);
           delegate.onFailed?.(data);
-          strategy.onFailed?.(data);
+          strategy?.onFailed?.(data);
           return;
 
         case HereProviderStatus.SUCCESS:
           clear();
           resolve(data);
           delegate.onSuccess?.(data);
-          strategy.onSuccess?.(data);
-          return;
-
-        case HereProviderStatus.REJECT:
-          clear();
-          resolve(data);
-          delegate.onReject?.(data);
-          strategy.onReject?.(data);
+          strategy?.onSuccess?.(data);
           return;
       }
     };
@@ -60,7 +76,7 @@ export const legacyProvider: HereProvider = async ({ strategy, state, args, ...d
 
       fallbackHttpTimer = setTimeout(async () => {
         try {
-          const data = await getTransactionStatus(state.hereApi, requestId);
+          const data = await getTransactionStatus(hereApi, id!);
           if (fallbackHttpTimer === -1) return;
           processApprove(data);
         } finally {
@@ -73,7 +89,7 @@ export const legacyProvider: HereProvider = async ({ strategy, state, args, ...d
 
     // Mobile flow doesn't support cross tabs socket background process
     if (isMobile() === false) {
-      const endpoint = `${socketApi}/api/v1/web/ws/transaction_approved/${requestId}`;
+      const endpoint = `${socketApi}/api/v1/web/ws/transaction_approved/${id!}`;
       socket = new WebSocket(endpoint);
       socket.onmessage = (e) => {
         if (e.data == null) return;

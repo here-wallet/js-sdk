@@ -1,8 +1,10 @@
-import { HereWalletState } from "./state";
+import { NetworkId } from "@near-wallet-selector/core";
 import { Strategy } from "./strategy";
 
-export interface ProviderOptions extends Strategy {
-  state: HereWalletState;
+export interface HereProviderOptions extends Strategy {
+  id?: string;
+  network: NetworkId;
+  signal?: AbortSignal;
   args: Record<string, string>;
   strategy?: Strategy;
 }
@@ -11,7 +13,6 @@ export enum HereProviderStatus {
   APPROVING = 1,
   FAILED = 2,
   SUCCESS = 3,
-  REJECT = 4,
 }
 
 export interface HereProviderResult {
@@ -20,4 +21,4 @@ export interface HereProviderResult {
   status: HereProviderStatus;
 }
 
-export type HereProvider = (options: ProviderOptions) => Promise<HereProviderResult>;
+export type HereProvider = (options: HereProviderOptions) => Promise<HereProviderResult>;

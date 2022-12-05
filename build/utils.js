@@ -1,40 +1,18 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
+import { __awaiter } from "tslib";
+import { createAction } from "@near-wallet-selector/wallet-utils";
+import { utils, transactions as nearTransactions } from "near-api-js";
+import uuid4 from "uuid4";
+import BN from "bn.js";
+import { HereProviderStatus } from "./provider";
+export const getDeviceId = () => {
+    const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
+    window.localStorage.setItem("herewallet-topic", topicId);
+    return topicId;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+export const isMobile = () => {
+    return window.matchMedia("(any-pointer:coarse)").matches;
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.isMobile = exports.transformTransactions = exports.getHereBalance = exports.setupWalletState = exports.createRequest = exports.getTransactionStatus = exports.getPublicKeys = exports.hereConfigurations = void 0;
-const wallet_utils_1 = require("@near-wallet-selector/wallet-utils");
-const near_api_js_1 = require("near-api-js");
-const sha1_1 = __importDefault(require("sha1"));
-const uuid4_1 = __importDefault(require("uuid4"));
-const bn_js_1 = __importDefault(require("bn.js"));
-exports.hereConfigurations = {
-    mainnet: {
-        hereApi: "https://api.herewallet.app",
-        hereConnector: "https://web.herewallet.app",
-        hereContract: "storage.herewallet.near",
-        download: "https://appstore.herewallet.app/selector",
-    },
-    testnet: {
-        hereApi: "https://api.testnet.herewallet.app",
-        hereConnector: "https://web.testnet.herewallet.app",
-        hereContract: "storage.herewallet.testnet",
-        download: "https://testflight.apple.com/join/LwvGXAK8",
-    },
-};
-const topicId = window.localStorage.getItem("herewallet-topic") || (0, uuid4_1.default)();
-window.localStorage.setItem("herewallet-topic", topicId);
-const getPublicKeys = (rpc, accountId) => __awaiter(void 0, void 0, void 0, function* () {
+export const getPublicKeys = (rpc, accountId) => __awaiter(void 0, void 0, void 0, function* () {
     const res = yield fetch(rpc, {
         method: "POST",
         body: JSON.stringify({
@@ -57,65 +35,26 @@ const getPublicKeys = (rpc, accountId) => __awaiter(void 0, void 0, void 0, func
     const data = yield res.json();
     return data.result.keys;
 });
-exports.getPublicKeys = getPublicKeys;
-const getTransactionStatus = (api, request) => __awaiter(void 0, void 0, void 0, function* () {
-    const res = yield fetch(`${api}/api/v1/web/web_request?request_id=${request}`, {
-        method: "GET",
-        headers: { "content-type": "application/json" },
-    });
-    if (res.ok === false) {
-        throw Error();
-    }
-    return yield res.json();
-});
-exports.getTransactionStatus = getTransactionStatus;
-const createRequest = (config, request, options) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const query = new URLSearchParams(options);
-    query.append("request_id", request);
-    try {
-        const host = (_a = new URL(document.referrer).hostname) !== null && _a !== void 0 ? _a : "";
-        query.append("referrer", host);
-    }
-    catch (_b) {
-        //
-    }
-    const transaction = `${config.hereConnector}/approve?${query}`;
-    const hashsum = (0, sha1_1.default)(transaction);
-    const res = yield fetch(`${config.hereApi}/api/v1/web/request_transaction_sign`, {
-        method: "POST",
-        body: JSON.stringify({
-            transaction: `${config.hereConnector}/approve?${query}`,
-            request_id: request,
-            topic: topicId,
-        }),
-        headers: {
-            "content-type": "application/json",
-        },
-    });
-    if (res.ok === false) {
-        throw Error(yield res.text());
-    }
-    return hashsum;
-});
-exports.createRequest = createRequest;
-const setupWalletState = (config, network) => __awaiter(void 0, void 0, void 0, function* () {
-    const keyStore = new near_api_js_1.keyStores.BrowserLocalStorageKeyStore();
-    const near = yield (0, near_api_js_1.connect)(Object.assign({ keyStore, walletUrl: config.hereConnector, headers: {} }, network));
-    const wallet = new near_api_js_1.WalletConnection(near, "here_app");
-    return { wallet, keyStore };
-});
-exports.setupWalletState = setupWalletState;
-const getHereBalance = (state, config) => __awaiter(void 0, void 0, void 0, function* () {
+export const getHereBalance = (state) => __awaiter(void 0, void 0, void 0, function* () {
     const params = { account_id: state.wallet.getAccountId() };
     const hereCoins = yield state.wallet
         .account()
-        .viewFunction(config.hereContract, "ft_balance_of", params)
+        .viewFunction(state.hereContract, "ft_balance_of", params)
         .catch(() => "0");
-    return new bn_js_1.default(hereCoins);
+    return new BN(hereCoins);
 });
-exports.getHereBalance = getHereBalance;
-const transformTransactions = (state, transactions) => __awaiter(void 0, void 0, void 0, function* () {
+export const internalThrow = (error, delegate) => {
+    var _a, _b, _c;
+    const result = {
+        payload: error instanceof Error ? error.message : "UNKNOWN",
+        status: HereProviderStatus.FAILED,
+        account_id: "",
+    };
+    (_a = delegate.onFailed) === null || _a === void 0 ? void 0 : _a.call(delegate, result);
+    (_c = (_b = delegate === null || delegate === void 0 ? void 0 : delegate.strategy) === null || _b === void 0 ? void 0 : _b.onFailed) === null || _c === void 0 ? void 0 : _c.call(_b, result);
+    throw error;
+};
+export const transformTransactions = (state, transactions) => __awaiter(void 0, void 0, void 0, function* () {
     const account = state.wallet.account();
     const { networkId, signer, provider } = account.connection;
     const localKey = yield signer.getPublicKey(account.accountId, networkId);
@@ -123,18 +62,14 @@ const transformTransactions = (state, transactions) => __awaiter(void 0, void 0,
     let index = 0;
     for (const transaction of transactions) {
         index += 1;
-        const actions = transaction.actions.map((action) => (0, wallet_utils_1.createAction)(action));
+        const actions = transaction.actions.map((action) => createAction(action));
         const accessKey = yield account.accessKeyForTransaction(transaction.receiverId, actions, localKey);
         if (!accessKey) {
             throw new Error(`Failed to find matching key for transaction sent to ${transaction.receiverId}`);
         }
         const block = yield provider.block({ finality: "final" });
-        transformed.push(near_api_js_1.transactions.createTransaction(account.accountId, near_api_js_1.utils.PublicKey.from(accessKey.public_key), transaction.receiverId, accessKey.access_key.nonce + index, actions, near_api_js_1.utils.serialize.base_decode(block.header.hash)));
+        transformed.push(nearTransactions.createTransaction(account.accountId, utils.PublicKey.from(accessKey.public_key), transaction.receiverId, accessKey.access_key.nonce + index, actions, utils.serialize.base_decode(block.header.hash)));
     }
     return transformed;
 });
-exports.transformTransactions = transformTransactions;
-const isMobile = () => {
-    return window.matchMedia("(any-pointer:coarse)").matches;
-};
-exports.isMobile = isMobile;
+//# sourceMappingURL=utils.js.map

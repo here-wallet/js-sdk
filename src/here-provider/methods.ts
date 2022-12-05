@@ -1,11 +1,27 @@
-import uuid4 from "uuid4";
 import sha1 from "sha1";
-import { HereWalletState } from "../state";
+import uuid4 from "uuid4";
 import { getDeviceId } from "../utils";
 import { HereProviderResult } from "../provider";
 
-export const getResponse = async (state: HereWalletState, id: string): Promise<HereProviderResult> => {
-  const res = await fetch(`${state.proxyApi}/${id}/response`, {
+export const proxyApi = "https://h4n.app";
+
+export const getRequest = async (id: string, signal?: AbortSignal): Promise<Record<string, string>> => {
+  const res = await fetch(`${proxyApi}/${id}/request`, {
+    signal,
+    headers: { "content-type": "application/json" },
+    method: "GET",
+  });
+
+  if (res.ok === false) {
+    throw Error(await res.text());
+  }
+
+  const { data } = await res.json();
+  return Object.fromEntries(new URLSearchParams(data).entries());
+};
+
+export const getResponse = async (id: string): Promise<HereProviderResult> => {
+  const res = await fetch(`${proxyApi}/${id}/response`, {
     headers: { "content-type": "application/json" },
     method: "GET",
   });
@@ -23,8 +39,8 @@ export const getResponse = async (state: HereWalletState, id: string): Promise<H
   };
 };
 
-export const deleteRequest = async (state: HereWalletState, id: string) => {
-  const res = await fetch(`${state.proxyApi}/${id}`, {
+export const deleteRequest = async (id: string) => {
+  const res = await fetch(`${proxyApi}/${id}`, {
     headers: { "content-type": "application/json" },
     method: "DELETE",
   });
@@ -34,7 +50,7 @@ export const deleteRequest = async (state: HereWalletState, id: string) => {
   }
 };
 
-export const createRequest = async (state: HereWalletState, args: Record<string, string>) => {
+export const createRequest = async (args: Record<string, string>, signal?: AbortSignal) => {
   const query = new URLSearchParams(args);
   query.append("nonce", uuid4());
 
@@ -49,8 +65,9 @@ export const createRequest = async (state: HereWalletState, args: Record<string,
   const id = Buffer.from(hashsum, "hex").toString("base64");
   const urlsafe = id.replaceAll("/", "_").replaceAll("-", "+");
 
-  const res = await fetch(`${state.proxyApi}/${urlsafe}/request`, {
+  const res = await fetch(`${proxyApi}/${urlsafe}/request`, {
     method: "POST",
+    signal,
     body: JSON.stringify({
       type: "sign_web",
       data: query.toString(),

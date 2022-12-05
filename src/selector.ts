@@ -1,6 +1,7 @@
+import { createTransaction, SCHEMA } from "near-api-js/lib/transaction";
 import { createAction } from "@near-wallet-selector/wallet-utils";
 import { PublicKey } from "near-api-js/lib/utils/key_pair";
-import { createTransaction, SCHEMA } from "near-api-js/lib/transaction";
+import { NetworkId } from "@near-wallet-selector/core";
 import { KeyPair } from "near-api-js";
 import * as borsh from "borsh";
 import BN from "bn.js";
@@ -38,7 +39,7 @@ export const initHereWallet: SelectorInit = async (config) => {
         const data = await hereProvider({
           ...delegate,
           args: args,
-          state: _state,
+          network: options.network.networkId as NetworkId,
         });
 
         if (data.account_id) {
@@ -133,7 +134,7 @@ export const initHereWallet: SelectorInit = async (config) => {
         const data = await hereProvider({
           ...delegate,
           args: { transactions: txBase64 },
-          state: _state,
+          network: options.network.networkId as NetworkId,
         });
 
         if (data.payload == null) {
@@ -188,7 +189,7 @@ export const initHereWallet: SelectorInit = async (config) => {
         const data = await hereProvider({
           ...delegate,
           args: { transactions: trxsBase64 },
-          state: _state,
+          network: options.network.networkId as NetworkId,
         });
 
         if (data.payload == null) {

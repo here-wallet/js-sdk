@@ -1,14 +1,22 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "lib": ["es2015", "esnext", "dom"],
-    "module": "commonjs",
-    "target": "es2015",
     "moduleResolution": "node",
+    "allowJs": true,
     "alwaysStrict": true,
+    "strict": true,
     "rootDir": "./src",
     "outDir": "./build",
-    "declaration": true
+    "declaration": true,
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["ESNext", "dom"],
+    "strictPropertyInitialization": false
   },
   "exclude": ["node_modules", "build", "dist", "example"]
 }

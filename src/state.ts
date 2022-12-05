@@ -18,8 +18,6 @@ import { Strategy } from "./strategy";
 import { HereProvider } from "./provider";
 
 export interface HereConfiguration {
-  proxyApi: string;
-  hereApi: string;
   hereConnector: string;
   hereContract: string;
   download: string;
@@ -27,15 +25,11 @@ export interface HereConfiguration {
 
 export const hereConfigurations: Record<string, HereConfiguration> = {
   mainnet: {
-    proxyApi: "https://h4n.app",
-    hereApi: "https://api.herewallet.app",
     hereConnector: "https://web.herewallet.app",
     hereContract: "storage.herewallet.near",
     download: "https://appstore.herewallet.app/selector",
   },
   testnet: {
-    proxyApi: "https://h4n.app",
-    hereApi: "https://api.testnet.herewallet.app",
     hereConnector: "https://web.testnet.herewallet.app",
     hereContract: "storage.herewallet.testnet",
     download: "https://testflight.apple.com/join/LwvGXAK8",
@@ -43,6 +37,7 @@ export const hereConfigurations: Record<string, HereConfiguration> = {
 };
 
 export interface HereAsyncOptions extends Strategy {
+  signal?: AbortSignal;
   strategy?: Strategy;
 }
 

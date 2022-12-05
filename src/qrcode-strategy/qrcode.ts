@@ -1,4 +1,5 @@
 import { createMinQRCode, drawModules } from "./core/utils";
+import logo from "./logo";
 
 interface QR {
   moduleCount: number;
@@ -15,12 +16,14 @@ export interface QRSettings {
   maxVersion?: number;
   quiet?: number;
   background?: string;
-  image: string;
+  withLogo: boolean;
   size: number;
 }
 
+const logoImage = new Image();
+logoImage.src = logo;
+
 class QRCodeLogo {
-  public readonly img = new Image();
   private quietModuleCount = 0;
   private moduleSize = 0;
   private dataPixels = 0;
@@ -36,48 +39,54 @@ class QRCodeLogo {
   private imageLeft = 0;
   private imageTop = 0;
 
-  constructor(settings: QRSettings, qr: QR) {
-    this.img.addEventListener("load", () => {
-      const quiet = settings.quiet ?? 0;
-      const imageEcCover = settings.imageEcCover ?? 0.5;
+  public isLoaded = false;
 
-      this.quietModuleCount = qr.moduleCount - quiet * 2;
-      this.moduleSize = settings.size / this.quietModuleCount;
-      this.dataPixels = this.quietModuleCount * this.quietModuleCount - (49 * 3 + 25);
-      this.ratio = this.img.width / this.img.height;
+  constructor(readonly settings: QRSettings, readonly qr: QR, public readonly img = logoImage) {
+    this.img.addEventListener("load", () => this.process());
+    if (this.img.width > 0) {
+      this.process();
+    }
+  }
 
-      const quality = {
-        L: 0.07,
-        M: 0.15,
-        Q: 0.25,
-        H: 0.3,
-      };
+  private process() {
+    const quiet = this.settings.quiet ?? 0;
+    const imageEcCover = this.settings.imageEcCover ?? 0.5;
 
-      this.area = (quality[settings.ecLevel] * imageEcCover * this.dataPixels) | 0;
+    this.isLoaded = true;
+    this.quietModuleCount = this.qr.moduleCount - quiet * 2;
+    this.moduleSize = this.settings.size / this.quietModuleCount;
+    this.dataPixels = this.quietModuleCount * this.quietModuleCount - (49 * 3 + 25);
+    this.ratio = this.img.width / this.img.height;
 
-      this.imageModuleWidth = Math.min(this.quietModuleCount, Math.sqrt(this.area * this.ratio) | 0);
-      this.imageModuleHeight = (this.imageModuleWidth / this.ratio) | 0;
-      if (this.imageModuleHeight > this.quietModuleCount) {
-        this.imageModuleHeight = this.quietModuleCount;
-        this.imageModuleWidth = (this.imageModuleHeight * this.ratio) | 0;
-      }
+    const quality = {
+      L: 0.07,
+      M: 0.15,
+      Q: 0.25,
+      H: 0.3,
+    };
 
-      this.imageModuleLeft = (qr.moduleCount / 2 - this.imageModuleWidth / 2) | 0;
-      this.imageModuleTop = (qr.moduleCount / 2 - this.imageModuleHeight / 2) | 0;
+    this.area = (quality[this.settings.ecLevel] * imageEcCover * this.dataPixels) | 0;
 
-      this.imageFloatModuleWidth = Math.min(this.imageModuleWidth, this.imageModuleHeight * this.ratio) - quiet;
-      this.imageFloatModuleHeight = Math.min(this.imageModuleHeight, this.imageModuleWidth / this.ratio) - quiet;
-      this.imageLeft = this.imageModuleLeft + (this.imageModuleWidth - this.imageFloatModuleWidth) / 2 - quiet;
-      this.imageTop = this.imageModuleTop + (this.imageModuleHeight - this.imageFloatModuleHeight) / 2 - quiet;
+    this.imageModuleWidth = Math.min(this.quietModuleCount, Math.sqrt(this.area * this.ratio) | 0);
+    this.imageModuleHeight = (this.imageModuleWidth / this.ratio) | 0;
+    if (this.imageModuleHeight > this.quietModuleCount) {
+      this.imageModuleHeight = this.quietModuleCount;
+      this.imageModuleWidth = (this.imageModuleHeight * this.ratio) | 0;
+    }
 
-      const isDark = qr.isDark;
-      qr.isDark = (row, col) => {
-        if (this.isContains(row, col)) return false;
-        return isDark(row, col);
-      };
-    });
+    this.imageModuleLeft = (this.qr.moduleCount / 2 - this.imageModuleWidth / 2) | 0;
+    this.imageModuleTop = (this.qr.moduleCount / 2 - this.imageModuleHeight / 2) | 0;
 
-    this.img.src = settings.image;
+    this.imageFloatModuleWidth = Math.min(this.imageModuleWidth, this.imageModuleHeight * this.ratio) - quiet;
+    this.imageFloatModuleHeight = Math.min(this.imageModuleHeight, this.imageModuleWidth / this.ratio) - quiet;
+    this.imageLeft = this.imageModuleLeft + (this.imageModuleWidth - this.imageFloatModuleWidth) / 2 - quiet;
+    this.imageTop = this.imageModuleTop + (this.imageModuleHeight - this.imageFloatModuleHeight) / 2 - quiet;
+
+    const isDark = this.qr.isDark;
+    this.qr.isDark = (row, col) => {
+      if (this.isContains(row, col)) return false;
+      return isDark(row, col);
+    };
   }
 
   render(context: CanvasRenderingContext2D) {
@@ -104,7 +113,7 @@ class QRCode {
   public readonly canvas = document.createElement("canvas");
   public readonly ctx: CanvasRenderingContext2D;
   public readonly settings: QRSettings;
-  public readonly logo: QRCodeLogo;
+  public readonly logo?: QRCodeLogo;
   public readonly qr: QR;
 
   private rafHandler = 0;
@@ -128,8 +137,10 @@ class QRCode {
     this.canvas.width = settings.size;
     this.canvas.height = settings.size;
 
-    this.logo = new QRCodeLogo(settings, this.qr);
-    this.logo.img.addEventListener("load", () => this.render());
+    if (settings.withLogo) {
+      this.logo = new QRCodeLogo(settings, this.qr);
+      this.logo.img.addEventListener("load", () => this.render());
+    }
   }
 
   render() {
@@ -141,7 +152,7 @@ class QRCode {
     }
 
     drawModules(this.qr, this.ctx, this.settings);
-    this.logo.render(this.ctx);
+    this.logo?.render(this.ctx);
   }
 
   animate = () => {

@@ -1,29 +1,21 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.setupHereWallet = exports.DefaultStrategy = void 0;
-const selector_1 = require("./selector");
-const utils_1 = require("./utils");
-const strategy_1 = require("./strategy");
-const icon_1 = __importDefault(require("./icon"));
-var strategy_2 = require("./strategy");
-Object.defineProperty(exports, "DefaultStrategy", { enumerable: true, get: function () { return strategy_2.DefaultStrategy; } });
-function setupHereWallet({ deprecated = false, iconUrl = icon_1.default, strategy = () => new strategy_1.DefaultStrategy(), } = {}) {
+import { __awaiter } from "tslib";
+import { DefaultStrategy } from "./strategy";
+import { hereConfigurations } from "./state";
+import { legacyProvider } from "./legacy-provider";
+import { proxyProvider } from "./here-provider";
+import { initHereWallet } from "./selector";
+import icon from "./icon";
+export { icon };
+export { DefaultStrategy } from "./strategy";
+export { HereProviderStatus } from "./provider";
+export function setupHereWallet({ deprecated = false, iconUrl = icon, strategy = () => new DefaultStrategy(), hereProvider = proxyProvider, } = {}) {
     return ({ options }) => __awaiter(this, void 0, void 0, function* () {
-        const configuration = utils_1.hereConfigurations[options.network.networkId];
+        const configuration = hereConfigurations[options.network.networkId];
         if (configuration == null) {
             return null;
+        }
+        if (options.network.networkId === "testnet") {
+            hereProvider = legacyProvider;
         }
         return {
             id: "here-wallet",
@@ -36,8 +28,8 @@ function setupHereWallet({ deprecated = false, iconUrl = icon_1.default, strateg
                 deprecated,
                 available: true,
             },
-            init: (config) => (0, selector_1.initHereWallet)(Object.assign(Object.assign({}, config), { configuration, strategy })),
+            init: (config) => initHereWallet(Object.assign(Object.assign({}, config), { configuration, strategy, hereProvider })),
         };
     });
 }
-exports.setupHereWallet = setupHereWallet;
+//# sourceMappingURL=index.js.map

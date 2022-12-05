@@ -2,7 +2,9 @@ import { Strategy } from "../strategy";
 import QRCode, { QRSettings } from "./qrcode";
 import logo from "./logo";
 
-export interface QRCodeStrategyOptions {
+export { QRCode, logo };
+
+export interface QRCodeStrategyOptions extends Partial<QRSettings> {
   element: HTMLElement;
   theme?: "dark" | "light";
   animate?: boolean;
@@ -16,42 +18,44 @@ export class QRCodeStrategy implements Strategy {
     return this.options.theme === "light" ? lightQR : darkQR;
   }
 
-  onRequested(value) {
-    this.qrcode = new QRCode({ ...this.themeConfig, value });
+  onRequested(value: string) {
+    this.qrcode = new QRCode({ ...this.themeConfig, ...this.options, value });
     this.options.element.appendChild(this.qrcode.canvas);
     this.options.animate ? this.qrcode.animate() : this.qrcode.render();
   }
 
-  onSucessed() {
+  close() {
     if (this.qrcode == null) return;
     this.options.element.removeChild(this.qrcode.canvas);
     this.qrcode?.stopAnimate();
   }
+
+  onFailed = () => this.close();
+  onSuccess = () => this.close();
 }
 
-const lightQR: QRSettings = {
+export const darkQR: QRSettings = {
   value: "",
   radius: 0.8,
-  ecLevel: "H",
+  ecLevel: "Q",
   fill: {
     type: "linear-gradient",
     position: [0, 0, 1, 1],
     colorStops: [
-      [0, "#34302C"],
-      [0.3, "#FD84E3"],
-      [0.8, "#34302C"],
+      [0, "#FFC152"],
+      [1, "#FF4D33"],
     ],
   },
   size: 256,
-  image: logo,
+  withLogo: true,
   imageEcCover: 0.6,
   quiet: 1,
 };
 
-const darkQR: QRSettings = {
+export const lightQR: QRSettings = {
   value: "",
   radius: 0.8,
-  ecLevel: "H",
+  ecLevel: "Q",
   fill: {
     type: "linear-gradient",
     position: [0.3, 0.3, 1, 1],
@@ -60,9 +64,8 @@ const darkQR: QRSettings = {
       [1, "#FDA31C"],
     ],
   },
-  background: "#2C3034",
   size: 256,
-  image: logo,
+  withLogo: true,
   imageEcCover: 0.6,
   quiet: 1,
 };

@@ -63,7 +63,7 @@ export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
   };
 
   delegate.onFailed?.(result);
-  delegate?.strategy.onFailed?.(result);
+  delegate?.strategy?.onFailed?.(result);
   throw error;
 };
 
