@@ -11,7 +11,7 @@ export class QRCodeStrategy {
         return this.options.theme === "light" ? lightQR : darkQR;
     }
     onRequested(value) {
-        this.qrcode = new QRCode(Object.assign(Object.assign(Object.assign({}, this.themeConfig), this.options), { value }));
+        this.qrcode = new QRCode(Object.assign(Object.assign(Object.assign({}, this.themeConfig), this.options), { value, withLogo: value.length <= 40 }));
         this.options.element.appendChild(this.qrcode.canvas);
         this.options.animate ? this.qrcode.animate() : this.qrcode.render();
     }
@@ -26,7 +26,7 @@ export class QRCodeStrategy {
 export const darkQR = {
     value: "",
     radius: 0.8,
-    ecLevel: "Q",
+    ecLevel: "H",
     fill: {
         type: "linear-gradient",
         position: [0, 0, 1, 1],
@@ -37,13 +37,13 @@ export const darkQR = {
     },
     size: 256,
     withLogo: true,
-    imageEcCover: 0.6,
+    imageEcCover: 0.7,
     quiet: 1,
 };
 export const lightQR = {
     value: "",
     radius: 0.8,
-    ecLevel: "Q",
+    ecLevel: "H",
     fill: {
         type: "linear-gradient",
         position: [0.3, 0.3, 1, 1],
@@ -54,7 +54,7 @@ export const lightQR = {
     },
     size: 256,
     withLogo: true,
-    imageEcCover: 0.6,
+    imageEcCover: 0.7,
     quiet: 1,
 };
 //# sourceMappingURL=index.js.map

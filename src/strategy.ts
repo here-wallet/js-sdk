@@ -1,6 +1,6 @@
 import { HereProviderResult } from "./provider";
 
-export interface Strategy {
+export interface HereStrategy {
   onInitialized?: () => void;
   onRequested?: (link: string, args: Record<string, string>, reject: (p?: string) => void) => void;
   onApproving?: (result: HereProviderResult) => void;
@@ -8,13 +8,13 @@ export interface Strategy {
   onFailed?: (result: HereProviderResult) => void;
 }
 
-export class DefaultStrategy implements Strategy {
+export class DefaultStrategy implements HereStrategy {
   signWindow: Window | null = null;
-  unloadHandler: () => void;
+  unloadHandler?: () => void;
   timerHandler?: NodeJS.Timeout;
 
   onInitialized() {
-    const left = window.innerWidth / 2 - 560 / 2;
+    const left = window.innerWidth / 2 - 420 / 2;
     const top = window.innerHeight / 2 - 700 / 2;
     this.signWindow = window.open("about:blank", "_blank", `popup=1,width=420,height=700,top=${top},left=${left}`);
   }
@@ -32,9 +32,11 @@ export class DefaultStrategy implements Strategy {
   }
 
   close() {
-    window.removeEventListener("beforeunload", this.unloadHandler);
     clearInterval(this.timerHandler);
     this.signWindow?.close();
+    if (this.unloadHandler) {
+      window.removeEventListener("beforeunload", this.unloadHandler);
+    }
   }
 
   onFailed = () => this.close();

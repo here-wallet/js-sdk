@@ -1,10 +1,10 @@
-import { Optional, Transaction } from "@near-wallet-selector/core";
-import { createAction } from "@near-wallet-selector/wallet-utils";
-import { utils, transactions as nearTransactions } from "near-api-js";
 import uuid4 from "uuid4";
-import BN from "bn.js";
-import { HereAsyncOptions, HereWalletState } from "./state";
+import { utils, transactions as nearTransactions, ConnectedWalletAccount } from "near-api-js";
+
+import { HereAsyncOptions } from "./types";
 import { HereProviderError, HereProviderResult, HereProviderStatus } from "./provider";
+import { Optional, Transaction } from "./actions/types";
+import { createAction } from "./actions";
 
 export const getDeviceId = () => {
   const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
@@ -45,16 +45,6 @@ export const getPublicKeys = async (
   return data.result.keys;
 };
 
-export const getHereBalance = async (state: HereWalletState): Promise<BN> => {
-  const params = { account_id: state.wallet.getAccountId() };
-  const hereCoins = await state.wallet
-    .account()
-    .viewFunction(state.hereContract, "ft_balance_of", params)
-    .catch(() => "0");
-
-  return new BN(hereCoins);
-};
-
 export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
   if (error instanceof HereProviderError) {
     throw error;
@@ -72,10 +62,9 @@ export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
 };
 
 export const transformTransactions = async (
-  state: HereWalletState,
+  account: ConnectedWalletAccount,
   transactions: Array<Optional<Transaction, "signerId">>
-) => {
-  const account = state.wallet.account();
+): Promise<Array<nearTransactions.Transaction>> => {
   const { networkId, signer, provider } = account.connection;
   const localKey = await signer.getPublicKey(account.accountId, networkId);
 

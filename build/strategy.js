@@ -5,7 +5,7 @@ export class DefaultStrategy {
         this.onSuccess = () => this.close();
     }
     onInitialized() {
-        const left = window.innerWidth / 2 - 560 / 2;
+        const left = window.innerWidth / 2 - 420 / 2;
         const top = window.innerHeight / 2 - 700 / 2;
         this.signWindow = window.open("about:blank", "_blank", `popup=1,width=420,height=700,top=${top},left=${left}`);
     }
@@ -23,9 +23,11 @@ export class DefaultStrategy {
     }
     close() {
         var _a;
-        window.removeEventListener("beforeunload", this.unloadHandler);
         clearInterval(this.timerHandler);
         (_a = this.signWindow) === null || _a === void 0 ? void 0 : _a.close();
+        if (this.unloadHandler) {
+            window.removeEventListener("beforeunload", this.unloadHandler);
+        }
     }
 }
 //# sourceMappingURL=strategy.js.map

@@ -1,4 +1,4 @@
-import { Strategy } from "../strategy";
+import { HereStrategy } from "../strategy";
 import QRCode, { QRSettings } from "./qrcode";
 import logo from "./logo";
 
@@ -10,7 +10,7 @@ export interface QRCodeStrategyOptions extends Partial<QRSettings> {
   animate?: boolean;
 }
 
-export class QRCodeStrategy implements Strategy {
+export class QRCodeStrategy implements HereStrategy {
   private qrcode?: QRCode;
   constructor(public options: QRCodeStrategyOptions) {}
 

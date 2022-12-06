@@ -1,7 +1,6 @@
-import { Optional, Transaction } from "@near-wallet-selector/core";
-import { transactions as nearTransactions } from "near-api-js";
-import BN from "bn.js";
-import { HereAsyncOptions, HereWalletState } from "./state";
+import { transactions as nearTransactions, ConnectedWalletAccount } from "near-api-js";
+import { HereAsyncOptions } from "./types";
+import { Optional, Transaction } from "./actions/types";
 export declare const getDeviceId: () => string;
 export declare const isMobile: () => boolean;
 export declare const getPublicKeys: (rpc: string, accountId: string) => Promise<Array<{
@@ -10,6 +9,5 @@ export declare const getPublicKeys: (rpc: string, accountId: string) => Promise<
         permission: string;
     };
 }>>;
-export declare const getHereBalance: (state: HereWalletState) => Promise<BN>;
 export declare const internalThrow: (error: unknown, delegate: HereAsyncOptions) => never;
-export declare const transformTransactions: (state: HereWalletState, transactions: Array<Optional<Transaction, "signerId">>) => Promise<nearTransactions.Transaction[]>;
+export declare const transformTransactions: (account: ConnectedWalletAccount, transactions: Array<Optional<Transaction, "signerId">>) => Promise<Array<nearTransactions.Transaction>>;

@@ -1,34 +1,21 @@
-# @herewallet/near-selector
+# @herewallet/core
 
-This library allows you to interact asynchronously with the here-wallet together with the near-selector.
-
-In contrast to the synchronous signing of transactions in MyNearWallet and official near wallet, where the user is redirected to the wallet site for signing -- **HERE Wallet** provides the ability to sign transactions using async/await API calls.
+In contrast to the synchronous signing of transactions in web near wallets, where the user is redirected to the wallet site for signing -- **HERE Wallet** provides the ability to sign transactions using async/await API calls.
 
 ```bash
-npm i near-api-js@^0.44.2
-npm i @near-wallet-selector/core --save
-npm i @here-wallet/near-selector --save
+npm i near-api-js@^0.44.2 --save
+npm i @here-wallet/core --save
 ```
 
 ## Usage
 
 ```ts
-import "@near-wallet-selector/modal-ui/styles.css";
-import { setupWalletSelector } from "@near-wallet-selector/core";
-import { setupNearWallet } from "@near-wallet-selector/near-wallet";
-import { setupModal } from "@near-wallet-selector/modal-ui";
-import { HereWallet, setupHereWallet } from "@here-wallet/near-selector";
+import { HereWallet } from "@here-wallet/core";
 
-const selector = await setupWalletSelector({
-  modules: [setupNearWallet(), setupHereWallet()],
-  network: "mainnet",
-});
+const here = await HereWallet.initialize()
+const account = await here.signIn({ contractId: "social.near" });
 
-// Force login with here-wallet easy!
-const here = await selector.wallet<HereWallet>("here-wallet");
-const accounts = await here.signIn({ contractId: "social.near" });
-
-console.log(`Hello ${accounts[0].accountId}!`);
+console.log(`Hello ${account}!`);
 ```
 
 ## How it works
@@ -49,16 +36,22 @@ You have the option to override how your user is delivered the signing link.
 This is how you can create a long-lived transaction signature request and render it on your web page:
 
 ```ts
-import { Strategy } from "@here-wallet/near-selector";
-import { QRCodeStrategy } from "@here-wallet/qrcode-strategy";
+import { HereStrategy, HereWallet } from "@here-wallet/core";
+import { QRCodeStrategy } from "@here-wallet/core/qrcode-strategy";
 
 const putQrcode = document.getElementById("qr-container")
 
 // Instant wallet signin HERE!
-const here = await selector.wallet<HereWallet>("here-wallet");
+const here = await HereWallet.initialize()
 await here.signIn({
   contractId: "social.near",
-  strategy: new QRCodeStrategy(putQrcode, "light"), // override new window
+
+  // override new window
+  strategy: new QRCodeStrategy({ 
+    element: putQrcode, 
+    theme: 'dark', 
+    size: 128 
+  }),
 });
 ```
 
@@ -70,7 +63,7 @@ https://codesandbox.io/s/here-wallet-instant-app-6msgmn
 Methods **signIn**, **signAndSendTransaction**, **signAndSendTransactions** have additional parameters:
 
 ```ts
-export interface AsyncHereSignDelegate {
+export interface HereOptions {
   // DefaultStrategy by default called new window popup, you can override it
   strategy?: Strategy;
   signal?: AbortSignal;
@@ -88,9 +81,9 @@ export interface AsyncHereSignDelegate {
 You can also set the default strategy for `setupHereWallet`:
 
 ```ts
-import { Strategy } from "@here-wallet/near-selector";
-class CustomStrategy implements Strategy {}
-setupHereWallet({ strategy: () => new CustomStrategy() });
+import { HereStrategy } from "@here-wallet/core";
+class CustomStrategy implements HereStrategy {}
+setupHereWallet({ defaultStrategy: () => new CustomStrategy() });
 ```
 
 ## Security
@@ -99,7 +92,3 @@ To transfer data between the application and the phone, we use our own proxy ser
 On the client side, a transaction confirmation request is generated with a unique request_id, our wallet receives this request_id and requests this transaction from the proxy.
 
 **To make sure that the transaction was not forged by the proxy service, the link that opens inside the application contains a hash-sum of the transaction. If the hashes do not match, the wallet will automatically reject the signing request**
-
-## Near Selector
-
-This library was created to speed up development, the most stable version of this module will be available in the official @near-selector/here-wallet library in the future!

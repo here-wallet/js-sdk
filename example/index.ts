@@ -1,11 +1,5 @@
-import QRCode from "qrcode";
-import "@near-wallet-selector/modal-ui-js/styles.css";
-
-import { setupWalletSelector, WalletSelector } from "@near-wallet-selector/core";
-import { setupNearWallet } from "@near-wallet-selector/near-wallet";
-import { setupModal } from "@near-wallet-selector/modal-ui-js";
-import { HereWallet, setupHereWallet } from "../src/index";
 import { QRCodeStrategy } from "../src/qrcode-strategy";
+import { HereWallet } from "../src";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -20,20 +14,20 @@ const uikit = {
     uikit.connectBtn.innerHTML = "Logout";
     uikit.fnCallBtn.style.display = "block";
     uikit.qrcode.style.display = "none";
+    uikit.qrcode.innerHTML = "";
   },
 
   logoutState() {
     uikit.account.innerHTML = `Scan QR to sigin with AppClip!`;
-    uikit.connectBtn.innerHTML = "Or just use Near Selector";
+    uikit.connectBtn.innerHTML = "Connect HERE Wallet";
     uikit.fnCallBtn.style.display = "none";
+    uikit.qrcode.style.display = "block";
   },
 };
 
 // Instant wallet signin HERE!
-const instantSignin = async (selector: WalletSelector) => {
-  const here = await selector.wallet<HereWallet>("here-wallet");
-
-  await here.signIn({
+const instantSignin = async (here: HereWallet) => {
+  const account = await here.signIn({
     contractId: "social.near",
     strategy: new QRCodeStrategy({ element: uikit.qrcode }), // override new window
     onApproving: (r) => console.log("onApproving", r),
@@ -41,47 +35,35 @@ const instantSignin = async (selector: WalletSelector) => {
     onFailed: async (r) => {
       console.log("onFailed");
       await delay(3000);
-      await instantSignin(selector);
+      await instantSignin(here);
     },
   });
-};
-
-const initializeSelector = async () => {
-  const selector = await setupWalletSelector({
-    modules: [setupNearWallet(), setupHereWallet()],
-    network: "mainnet",
-  });
-
-  const modal = setupModal(selector, { contractId: "social.near" });
-  selector.on("signedIn", (data) => uikit.loginState(data.accounts[0].accountId));
-  selector.on("signedOut", () => {
-    instantSignin(selector);
-    uikit.logoutState();
-  });
-
-  if (selector.isSignedIn()) {
-    const wallet = await selector.wallet();
-    const [{ accountId }] = await wallet.getAccounts();
-    uikit.loginState(accountId);
-  } else {
-    uikit.logoutState();
-    instantSignin(selector);
-  }
-
-  uikit.connectBtn.onclick = async () => {
-    if (selector.isSignedIn() == false) return modal.show();
-    const wallet = await selector.wallet();
-    await wallet.signOut();
-  };
-
-  return { modal, selector };
+  uikit.loginState(account);
 };
 
 const main = async () => {
-  const { selector } = await initializeSelector();
+  const here = await HereWallet.initialize();
+  if (here.isSignedIn) {
+    uikit.loginState(here.getAccountId());
+  } else {
+    uikit.logoutState();
+    instantSignin(here);
+  }
+
+  uikit.connectBtn.onclick = async () => {
+    if (here.isSignedIn) {
+      here.signOut();
+      uikit.logoutState();
+      await instantSignin(here);
+      return;
+    }
+
+    const account = await here.signIn({ contractId: "social.near" });
+    uikit.loginState(account);
+  };
+
   uikit.fnCallBtn?.addEventListener("click", async () => {
-    const here = await selector.wallet<HereWallet>("here-wallet");
-    const [{ accountId }] = await here.getAccounts();
+    const account = here.getAccountId();
     const result = await here.signAndSendTransaction({
       receiverId: "social.near",
       actions: [
@@ -89,7 +71,7 @@ const main = async () => {
           type: "FunctionCall",
           params: {
             methodName: "set",
-            args: { data: { [accountId]: { profile: { hereUser: "yes" } } } },
+            args: { data: { [account]: { profile: { hereUser: "yes" } } } },
             gas: "30000000000000",
             deposit: "1",
           },

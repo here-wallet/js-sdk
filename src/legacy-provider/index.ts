@@ -15,7 +15,7 @@ export const hereConfigurations = {
 } as const;
 
 export const legacyProvider: HereProvider = async ({ id, strategy, signal, network, args, ...delegate }) => {
-  const { hereApi, hereConnector } = hereConfigurations[network];
+  const { hereApi, hereConnector } = hereConfigurations[network as "mainnet" | "testnet"] ?? hereConfigurations.testnet;
 
   if (id != null) args = await getRequest(hereApi, id, signal);
   else {

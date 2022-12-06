@@ -1,12 +1,11 @@
-import { NetworkId } from "@near-wallet-selector/core";
-import { Strategy } from "./strategy";
+import { HereStrategy } from "./strategy";
 
-export interface HereProviderOptions extends Strategy {
+export interface HereProviderOptions extends HereStrategy {
   id?: string;
-  network: NetworkId;
+  network: string;
   signal?: AbortSignal;
   args: Record<string, string>;
-  strategy?: Strategy;
+  strategy?: HereStrategy;
 }
 
 export enum HereProviderStatus {

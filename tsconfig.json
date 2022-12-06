@@ -2,8 +2,8 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "allowJs": true,
     "alwaysStrict": true,
+    "allowJs": true,
     "strict": true,
     "rootDir": "./src",
     "outDir": "./build",
@@ -11,12 +11,10 @@
     "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "importHelpers": true,
     "allowSyntheticDefaultImports": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": ["ESNext", "dom"],
-    "strictPropertyInitialization": false
+    "lib": ["ESNext", "dom"]
   },
   "exclude": ["node_modules", "build", "dist", "example"]
 }
