@@ -63,7 +63,7 @@ export const createRequest = async (args: Record<string, string>, signal?: Abort
 
   const hashsum = sha1(query.toString());
   const id = Buffer.from(hashsum, "hex").toString("base64");
-  const urlsafe = id.replaceAll("/", "_").replaceAll("-", "+");
+  const urlsafe = id.replaceAll("/", "_").replaceAll("-", "+").slice(0, 13);
 
   const res = await fetch(`${proxyApi}/${urlsafe}/request`, {
     method: "POST",

@@ -19,7 +19,7 @@ export class QRCodeStrategy implements Strategy {
   }
 
   onRequested(value: string) {
-    this.qrcode = new QRCode({ ...this.themeConfig, ...this.options, value });
+    this.qrcode = new QRCode({ ...this.themeConfig, ...this.options, value, withLogo: value.length <= 40 });
     this.options.element.appendChild(this.qrcode.canvas);
     this.options.animate ? this.qrcode.animate() : this.qrcode.render();
   }
@@ -37,7 +37,7 @@ export class QRCodeStrategy implements Strategy {
 export const darkQR: QRSettings = {
   value: "",
   radius: 0.8,
-  ecLevel: "Q",
+  ecLevel: "H",
   fill: {
     type: "linear-gradient",
     position: [0, 0, 1, 1],
@@ -48,14 +48,14 @@ export const darkQR: QRSettings = {
   },
   size: 256,
   withLogo: true,
-  imageEcCover: 0.6,
+  imageEcCover: 0.7,
   quiet: 1,
 };
 
 export const lightQR: QRSettings = {
   value: "",
   radius: 0.8,
-  ecLevel: "Q",
+  ecLevel: "H",
   fill: {
     type: "linear-gradient",
     position: [0.3, 0.3, 1, 1],
@@ -66,6 +66,6 @@ export const lightQR: QRSettings = {
   },
   size: 256,
   withLogo: true,
-  imageEcCover: 0.6,
+  imageEcCover: 0.7,
   quiet: 1,
 };
