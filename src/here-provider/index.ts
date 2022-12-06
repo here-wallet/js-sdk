@@ -1,19 +1,14 @@
 import { isMobile } from "../utils";
-import { HereProvider, HereProviderResult, HereProviderStatus } from "../provider";
+import { HereProvider, HereProviderError, HereProviderResult, HereProviderStatus } from "../provider";
 import { createRequest, getResponse, deleteRequest, proxyApi, getRequest } from "./methods";
 
 export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, ...delegate }) => {
   if (id != null) args = await getRequest(id, signal);
   else id = await createRequest(args, signal);
 
-  const socketApi = proxyApi.replace("https", "wss");
-  let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
-
-  const deeplink = `${proxyApi}/${id}`;
-  delegate.onRequested?.(deeplink, args);
-  strategy?.onRequested?.(deeplink, args);
-
-  return new Promise<HereProviderResult>((resolve, reject) => {
+  return new Promise<HereProviderResult>((resolve, reject: (e: HereProviderError) => void) => {
+    const socketApi = proxyApi.replace("https", "wss");
+    let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
     let socket: WebSocket | null = null;
 
     const clear = async () => {
@@ -22,14 +17,6 @@ export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, 
       socket?.close();
       await deleteRequest(id!);
     };
-
-    signal?.addEventListener("abort", () =>
-      processApprove({
-        account_id: "",
-        status: HereProviderStatus.FAILED,
-        payload: "abort",
-      })
-    );
 
     const processApprove = (data: HereProviderResult) => {
       switch (data.status) {
@@ -40,7 +27,7 @@ export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, 
 
         case HereProviderStatus.FAILED:
           clear();
-          reject(data);
+          reject(new HereProviderError(data.payload));
           delegate.onFailed?.(data);
           strategy?.onFailed?.(data);
           return;
@@ -54,6 +41,15 @@ export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, 
       }
     };
 
+    const rejectAction = (payload?: string) => {
+      processApprove({ status: HereProviderStatus.FAILED, payload });
+    };
+
+    const deeplink = `${proxyApi}/${id}`;
+    delegate.onRequested?.(deeplink, args, rejectAction);
+    strategy?.onRequested?.(deeplink, args, rejectAction);
+    signal?.addEventListener("abort", () => rejectAction());
+
     const setupTimer = () => {
       if (fallbackHttpTimer === -1) {
         return;
@@ -64,8 +60,16 @@ export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, 
           const data = await getResponse(id!);
           if (fallbackHttpTimer === -1) return;
           processApprove(data);
-        } finally {
           setupTimer();
+        } catch (e) {
+          const status = HereProviderStatus.FAILED;
+          const error = e instanceof Error ? e : undefined;
+          const payload = error?.message;
+
+          clear();
+          reject(new HereProviderError(payload, error));
+          delegate.onFailed?.({ status, payload });
+          strategy?.onFailed?.({ status, payload });
         }
       }, 3000);
     };

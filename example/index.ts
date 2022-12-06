@@ -7,6 +7,8 @@ import { setupModal } from "@near-wallet-selector/modal-ui-js";
 import { HereWallet, setupHereWallet } from "../src/index";
 import { QRCodeStrategy } from "../src/qrcode-strategy";
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const uikit = {
   connectBtn: document.getElementById("connect")!,
   qrcode: document.getElementById("qrcode")!,
@@ -36,7 +38,11 @@ const instantSignin = async (selector: WalletSelector) => {
     strategy: new QRCodeStrategy({ element: uikit.qrcode }), // override new window
     onApproving: (r) => console.log("onApproving", r),
     onSuccess: (r) => console.log("onSuccess", r),
-    onFailed: (r) => instantSignin(selector),
+    onFailed: async (r) => {
+      console.log("onFailed");
+      await delay(3000);
+      await instantSignin(selector);
+    },
   });
 };
 

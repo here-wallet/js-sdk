@@ -1,6 +1,6 @@
 import uuid4 from "uuid4";
 import { isMobile } from "../utils";
-import { HereProvider, HereProviderResult, HereProviderStatus } from "../provider";
+import { HereProvider, HereProviderError, HereProviderResult, HereProviderStatus } from "../provider";
 import { createRequest, getRequest, getTransactionStatus } from "./methods";
 
 export const hereConfigurations = {
@@ -23,14 +23,9 @@ export const legacyProvider: HereProvider = async ({ id, strategy, signal, netwo
     await createRequest(hereApi, hereConnector, id, args, signal);
   }
 
-  const socketApi = hereApi.replace("https", "wss");
-  let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
-
-  const deeplink = `${hereConnector}?request_id=${id}`;
-  delegate.onRequested?.(deeplink, args);
-  strategy?.onRequested?.(deeplink, args);
-
-  return new Promise<HereProviderResult>((resolve, reject) => {
+  return new Promise<HereProviderResult>((resolve, reject: (e: HereProviderError) => void) => {
+    const socketApi = hereApi.replace("https", "wss");
+    let fallbackHttpTimer: NodeJS.Timeout | number | null = null;
     let socket: WebSocket | null = null;
 
     const clear = () => {
@@ -38,13 +33,6 @@ export const legacyProvider: HereProvider = async ({ id, strategy, signal, netwo
       clearInterval(fallbackHttpTimer);
       socket?.close();
     };
-
-    signal?.addEventListener("abort", () =>
-      processApprove({
-        account_id: "",
-        status: HereProviderStatus.FAILED,
-      })
-    );
 
     const processApprove = (data: HereProviderResult) => {
       switch (data.status) {
@@ -55,7 +43,7 @@ export const legacyProvider: HereProvider = async ({ id, strategy, signal, netwo
 
         case HereProviderStatus.FAILED:
           clear();
-          reject(data);
+          reject(new HereProviderError(data.payload));
           delegate.onFailed?.(data);
           strategy?.onFailed?.(data);
           return;
@@ -69,6 +57,15 @@ export const legacyProvider: HereProvider = async ({ id, strategy, signal, netwo
       }
     };
 
+    const rejectAction = (payload?: string) => {
+      processApprove({ status: HereProviderStatus.FAILED, payload });
+    };
+
+    const deeplink = `${hereConnector}?request_id=${id}`;
+    delegate.onRequested?.(deeplink, args, rejectAction);
+    strategy?.onRequested?.(deeplink, args, rejectAction);
+    signal?.addEventListener("abort", () => rejectAction());
+
     const setupTimer = () => {
       if (fallbackHttpTimer === -1) {
         return;
@@ -79,8 +76,16 @@ export const legacyProvider: HereProvider = async ({ id, strategy, signal, netwo
           const data = await getTransactionStatus(hereApi, id!);
           if (fallbackHttpTimer === -1) return;
           processApprove(data);
-        } finally {
           setupTimer();
+        } catch (e) {
+          const status = HereProviderStatus.FAILED;
+          const error = e instanceof Error ? e : undefined;
+          const payload = error?.message;
+
+          clear();
+          reject(new HereProviderError(payload, error));
+          delegate.onFailed?.({ status, payload });
+          strategy?.onFailed?.({ status, payload });
         }
       }, 3000);
     };

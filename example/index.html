@@ -29,7 +29,7 @@
             text-align: center;
         }
     
-        button {
+        .here-button {
             cursor: pointer;
             font-family: 'Manrope';
             box-sizing: border-box;
@@ -57,11 +57,11 @@
             transition: 0.2s background;
         }
     
-        button:hover {
+        .here-button:hover {
             background: #ffcc4a;
         }
     
-        button:disabled {
+        .here-button:disabled {
             cursor: default;
             background: #f6bf4c;
         }
@@ -71,9 +71,9 @@
 <body>
     <h1 id="account-id"></h1>
     <div id="qrcode"></div>
-    <button id="connect"></button>
+    <button class="here-button" id="connect"></button>
 
-    <button id="function-call">Function call</button>
+    <button class="here-button" id="function-call">Function call</button>
     <script module src="./index.ts"></script>
 </body>
 

@@ -4,7 +4,7 @@ import { utils, transactions as nearTransactions } from "near-api-js";
 import uuid4 from "uuid4";
 import BN from "bn.js";
 import { HereAsyncOptions, HereWalletState } from "./state";
-import { HereProviderResult, HereProviderStatus } from "./provider";
+import { HereProviderError, HereProviderResult, HereProviderStatus } from "./provider";
 
 export const getDeviceId = () => {
   const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
@@ -56,6 +56,10 @@ export const getHereBalance = async (state: HereWalletState): Promise<BN> => {
 };
 
 export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
+  if (error instanceof HereProviderError) {
+    throw error;
+  }
+
   const result: HereProviderResult = {
     payload: error instanceof Error ? error.message : "UNKNOWN",
     status: HereProviderStatus.FAILED,

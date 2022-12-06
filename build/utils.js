@@ -3,7 +3,7 @@ import { createAction } from "@near-wallet-selector/wallet-utils";
 import { utils, transactions as nearTransactions } from "near-api-js";
 import uuid4 from "uuid4";
 import BN from "bn.js";
-import { HereProviderStatus } from "./provider";
+import { HereProviderError, HereProviderStatus } from "./provider";
 export const getDeviceId = () => {
     const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
     window.localStorage.setItem("herewallet-topic", topicId);
@@ -45,6 +45,9 @@ export const getHereBalance = (state) => __awaiter(void 0, void 0, void 0, funct
 });
 export const internalThrow = (error, delegate) => {
     var _a, _b, _c;
+    if (error instanceof HereProviderError) {
+        throw error;
+    }
     const result = {
         payload: error instanceof Error ? error.message : "UNKNOWN",
         status: HereProviderStatus.FAILED,

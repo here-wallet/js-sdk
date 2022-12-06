@@ -16,9 +16,15 @@ export enum HereProviderStatus {
 }
 
 export interface HereProviderResult {
-  account_id: string;
+  account_id?: string;
   payload?: string;
   status: HereProviderStatus;
+}
+
+export class HereProviderError extends Error {
+  constructor(readonly payload?: string, readonly parentError?: Error) {
+    super(payload ?? parentError?.message);
+  }
 }
 
 export type HereProvider = (options: HereProviderOptions) => Promise<HereProviderResult>;

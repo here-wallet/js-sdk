@@ -1,7 +1,7 @@
 import { __awaiter, __rest } from "tslib";
 import uuid4 from "uuid4";
 import { isMobile } from "../utils";
-import { HereProviderStatus } from "../provider";
+import { HereProviderError, HereProviderStatus } from "../provider";
 import { createRequest, getRequest, getTransactionStatus } from "./methods";
 export const hereConfigurations = {
     mainnet: {
@@ -13,7 +13,7 @@ export const hereConfigurations = {
         hereConnector: "https://web.testnet.herewallet.app",
     },
 };
-export const legacyProvider = (_a) => { var _b, _c; return __awaiter(void 0, void 0, void 0, function* () {
+export const legacyProvider = (_a) => __awaiter(void 0, void 0, void 0, function* () {
     var { id, strategy, signal, network, args } = _a, delegate = __rest(_a, ["id", "strategy", "signal", "network", "args"]);
     const { hereApi, hereConnector } = hereConfigurations[network];
     if (id != null)
@@ -22,22 +22,16 @@ export const legacyProvider = (_a) => { var _b, _c; return __awaiter(void 0, voi
         id = uuid4();
         yield createRequest(hereApi, hereConnector, id, args, signal);
     }
-    const socketApi = hereApi.replace("https", "wss");
-    let fallbackHttpTimer = null;
-    const deeplink = `${hereConnector}?request_id=${id}`;
-    (_b = delegate.onRequested) === null || _b === void 0 ? void 0 : _b.call(delegate, deeplink, args);
-    (_c = strategy === null || strategy === void 0 ? void 0 : strategy.onRequested) === null || _c === void 0 ? void 0 : _c.call(strategy, deeplink, args);
     return new Promise((resolve, reject) => {
+        var _a, _b;
+        const socketApi = hereApi.replace("https", "wss");
+        let fallbackHttpTimer = null;
         let socket = null;
         const clear = () => {
             fallbackHttpTimer = -1;
             clearInterval(fallbackHttpTimer);
             socket === null || socket === void 0 ? void 0 : socket.close();
         };
-        signal === null || signal === void 0 ? void 0 : signal.addEventListener("abort", () => processApprove({
-            account_id: "",
-            status: HereProviderStatus.FAILED,
-        }));
         const processApprove = (data) => {
             var _a, _b, _c, _d, _e, _f;
             switch (data.status) {
@@ -47,7 +41,7 @@ export const legacyProvider = (_a) => { var _b, _c; return __awaiter(void 0, voi
                     return;
                 case HereProviderStatus.FAILED:
                     clear();
-                    reject(data);
+                    reject(new HereProviderError(data.payload));
                     (_c = delegate.onFailed) === null || _c === void 0 ? void 0 : _c.call(delegate, data);
                     (_d = strategy === null || strategy === void 0 ? void 0 : strategy.onFailed) === null || _d === void 0 ? void 0 : _d.call(strategy, data);
                     return;
@@ -59,19 +53,34 @@ export const legacyProvider = (_a) => { var _b, _c; return __awaiter(void 0, voi
                     return;
             }
         };
+        const rejectAction = (payload) => {
+            processApprove({ status: HereProviderStatus.FAILED, payload });
+        };
+        const deeplink = `${hereConnector}?request_id=${id}`;
+        (_a = delegate.onRequested) === null || _a === void 0 ? void 0 : _a.call(delegate, deeplink, args, rejectAction);
+        (_b = strategy === null || strategy === void 0 ? void 0 : strategy.onRequested) === null || _b === void 0 ? void 0 : _b.call(strategy, deeplink, args, rejectAction);
+        signal === null || signal === void 0 ? void 0 : signal.addEventListener("abort", () => rejectAction());
         const setupTimer = () => {
             if (fallbackHttpTimer === -1) {
                 return;
             }
             fallbackHttpTimer = setTimeout(() => __awaiter(void 0, void 0, void 0, function* () {
+                var _a, _b;
                 try {
                     const data = yield getTransactionStatus(hereApi, id);
                     if (fallbackHttpTimer === -1)
                         return;
                     processApprove(data);
-                }
-                finally {
                     setupTimer();
+                }
+                catch (e) {
+                    const status = HereProviderStatus.FAILED;
+                    const error = e instanceof Error ? e : undefined;
+                    const payload = error === null || error === void 0 ? void 0 : error.message;
+                    clear();
+                    reject(new HereProviderError(payload, error));
+                    (_a = delegate.onFailed) === null || _a === void 0 ? void 0 : _a.call(delegate, { status, payload });
+                    (_b = strategy === null || strategy === void 0 ? void 0 : strategy.onFailed) === null || _b === void 0 ? void 0 : _b.call(strategy, { status, payload });
                 }
             }), 3000);
         };
@@ -93,5 +102,5 @@ export const legacyProvider = (_a) => { var _b, _c; return __awaiter(void 0, voi
             };
         }
     });
-}); };
+});
 //# sourceMappingURL=index.js.map
