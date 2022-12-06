@@ -13,7 +13,7 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "es2015",
-    "module": "esnext",
+    "module": "CommonJS",
     "lib": ["ESNext", "dom"]
   },
   "exclude": ["node_modules", "build", "dist", "example"]

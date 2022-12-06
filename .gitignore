@@ -1,6 +1,7 @@
 node_modules
 dist/example*
 dist/index.html
+build
 dist
 .cache
 .DS_Store
