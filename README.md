@@ -12,7 +12,7 @@ npm i @here-wallet/core --save
 ```ts
 import { HereWallet } from "@here-wallet/core";
 
-const here = await HereWallet.initialize()
+const here = new HereWallet()
 const account = await here.signIn({ contractId: "social.near" });
 
 console.log(`Hello ${account}!`);
@@ -42,7 +42,7 @@ import { QRCodeStrategy } from "@here-wallet/core/qrcode-strategy";
 const putQrcode = document.getElementById("qr-container")
 
 // Instant wallet signin HERE!
-const here = await HereWallet.initialize()
+const here = new HereWallet()
 await here.signIn({
   contractId: "social.near",
 
@@ -58,6 +58,22 @@ await here.signIn({
 You can also look at an example in this repository /example/index.ts or in sandbox:
 https://codesandbox.io/s/here-wallet-instant-app-6msgmn
 
+## Sign in is optional!
+
+You can generate a signing transaction without knowing your user's accountId (without calling signIn).
+There are cases when you do not need to receive a public key from the user to call your contract, but you want to ask the user to perform an action in your application once:
+
+```ts
+import { HereWallet } from "@here-wallet/core";
+const here = new HereWallet()
+const tx = await here.signAndSendTransaction({
+  receiverId: "donate.near",
+  actions: [{ type: "FunctionCall", params: { deposit: 1000 }}]
+});
+
+console.log("Thanks for the donation!")
+```
+
 ## Strategy and Events
 
 Methods **signIn**, **signAndSendTransaction**, **signAndSendTransactions** have additional parameters:
@@ -71,7 +87,7 @@ export interface HereOptions {
   // Just Events, called before strategy,
   // use this if you don't need to change strategy
   onInitialized?: () => void;
-  onRequested?: (link: string) => void;
+  onRequested?: (request: HereProviderRequest) => void;
   onApproving?: (result: HereProviderResult) => void;
   onSuccess?: (result: HereProviderResult) => void;
   onFailed?: (result: HereProviderResult) => void;
@@ -81,9 +97,9 @@ export interface HereOptions {
 You can also set the default strategy for `setupHereWallet`:
 
 ```ts
-import { HereStrategy } from "@here-wallet/core";
+import { HereStrategy, HereWallet } from "@here-wallet/core";
 class CustomStrategy implements HereStrategy {}
-setupHereWallet({ defaultStrategy: () => new CustomStrategy() });
+new HereWallet({ defaultStrategy: () => new CustomStrategy() });
 ```
 
 ## Security
