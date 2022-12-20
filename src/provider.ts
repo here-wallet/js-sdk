@@ -1,11 +1,19 @@
+import { Optional, Transaction } from "./actions/types";
 import { HereStrategy } from "./strategy";
 
 export interface HereProviderOptions extends HereStrategy {
   id?: string;
-  network: string;
+  network?: string;
   signal?: AbortSignal;
-  args: Record<string, string>;
+  transactions?: Optional<Transaction, "signerId">[];
+  disableCleanupRequest?: boolean;
   strategy?: HereStrategy;
+}
+
+export interface HereProviderRequest {
+  transactions: Optional<Transaction, "signerId">[];
+  network?: string;
+  id?: string;
 }
 
 export enum HereProviderStatus {

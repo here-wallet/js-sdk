@@ -1,11 +1,21 @@
 import sha1 from "sha1";
 import uuid4 from "uuid4";
+import { base_decode, base_encode } from "near-api-js/lib/utils/serialize";
+import { HereProviderRequest, HereProviderResult } from "../provider";
 import { getDeviceId } from "../utils";
-import { HereProviderResult } from "../provider";
 
 export const proxyApi = "https://h4n.app";
 
-export const getRequest = async (id: string, signal?: AbortSignal): Promise<Record<string, string>> => {
+export const getDeeplinkUrl = (network: string) => {
+  switch (network) {
+    case "mainnet":
+      return "https://h4n.app";
+    default:
+      return "testnet.herewallet://h4n.app";
+  }
+};
+
+export const getRequest = async (id: string, signal?: AbortSignal): Promise<HereProviderRequest> => {
   const res = await fetch(`${proxyApi}/${id}/request`, {
     signal,
     headers: { "content-type": "application/json" },
@@ -17,7 +27,7 @@ export const getRequest = async (id: string, signal?: AbortSignal): Promise<Reco
   }
 
   const { data } = await res.json();
-  return Object.fromEntries(new URLSearchParams(data).entries());
+  return JSON.parse(base_decode(data).toString("utf8"));
 };
 
 export const getResponse = async (id: string): Promise<HereProviderResult> => {
@@ -50,18 +60,9 @@ export const deleteRequest = async (id: string) => {
   }
 };
 
-export const createRequest = async (args: Record<string, string>, signal?: AbortSignal) => {
-  const query = new URLSearchParams(args);
-  query.append("nonce", uuid4());
-
-  try {
-    const host = new URL(document.referrer).hostname ?? "";
-    query.append("referrer", host);
-  } catch {
-    //
-  }
-
-  const hashsum = sha1(query.toString());
+export const createRequest = async (request: HereProviderRequest, signal?: AbortSignal) => {
+  const query = base_encode(JSON.stringify({ ...request, id: uuid4() }));
+  const hashsum = sha1(query);
   const id = Buffer.from(hashsum, "hex").toString("base64");
   const urlsafe = id.replaceAll("/", "_").replaceAll("-", "+").slice(0, 13);
 
@@ -69,9 +70,8 @@ export const createRequest = async (args: Record<string, string>, signal?: Abort
     method: "POST",
     signal,
     body: JSON.stringify({
-      type: "sign_web",
-      data: query.toString(),
       topic_id: getDeviceId(),
+      data: query,
     }),
     headers: {
       "content-type": "application/json",

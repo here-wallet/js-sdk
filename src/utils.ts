@@ -1,10 +1,7 @@
 import uuid4 from "uuid4";
-import { utils, transactions as nearTransactions, ConnectedWalletAccount } from "near-api-js";
-
-import { HereAsyncOptions } from "./types";
+import { AccessKeyInfoView } from "near-api-js/lib/providers/provider";
 import { HereProviderError, HereProviderResult, HereProviderStatus } from "./provider";
-import { Optional, Transaction } from "./actions/types";
-import { createAction } from "./actions";
+import { HereAsyncOptions, HereCall } from "./types";
 
 export const getDeviceId = () => {
   const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
@@ -61,38 +58,29 @@ export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
   throw error;
 };
 
-export const transformTransactions = async (
-  account: ConnectedWalletAccount,
-  transactions: Array<Optional<Transaction, "signerId">>
-): Promise<Array<nearTransactions.Transaction>> => {
-  const { networkId, signer, provider } = account.connection;
-  const localKey = await signer.getPublicKey(account.accountId, networkId);
-
-  const transformed: Array<nearTransactions.Transaction> = [];
-  let index = 0;
-
-  for (const transaction of transactions) {
-    index += 1;
-
-    const actions = transaction.actions.map((action) => createAction(action));
-    const accessKey = await account.accessKeyForTransaction(transaction.receiverId, actions, localKey);
-
-    if (!accessKey) {
-      throw new Error(`Failed to find matching key for transaction sent to ${transaction.receiverId}`);
-    }
-
-    const block = await provider.block({ finality: "final" });
-    transformed.push(
-      nearTransactions.createTransaction(
-        account.accountId,
-        utils.PublicKey.from(accessKey.public_key),
-        transaction.receiverId,
-        accessKey.access_key.nonce + index,
-        actions,
-        utils.serialize.base_decode(block.header.hash)
-      )
-    );
+export const isValidAccessKey = (accountId: string, accessKey: AccessKeyInfoView, call: HereCall) => {
+  const { permission } = accessKey.access_key;
+  if (permission === "FullAccess") {
+    return true;
   }
 
-  return transformed;
+  if (permission.FunctionCall) {
+    const { receiver_id: allowedReceiverId, method_names: allowedMethods } = permission.FunctionCall;
+    if (allowedReceiverId === accountId && allowedMethods.includes("add_request_and_confirm")) {
+      return accessKey;
+    }
+
+    if (allowedReceiverId === call.receiverId) {
+      return call.actions.every((action) => {
+        if (action.type !== "FunctionCall") return false;
+        return (
+          (!action.params.deposit || action.params.deposit.toString() === "0") &&
+          (allowedMethods.length === 0 || allowedMethods.includes(action.params.methodName))
+        );
+      });
+    }
+  }
+
+  return false;
 };
+

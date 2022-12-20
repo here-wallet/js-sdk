@@ -58,6 +58,7 @@ export interface DeleteAccountAction {
     beneficiaryId: string;
   };
 }
+
 export declare type Action =
   | CreateAccountAction
   | DeployContractAction
@@ -74,6 +75,6 @@ export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export interface Transaction {
   signerId: string;
-  receiverId: string;
+  receiverId?: string;
   actions: Array<Action>;
 }

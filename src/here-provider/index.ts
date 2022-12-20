@@ -1,10 +1,14 @@
 import { isMobile } from "../utils";
 import { HereProvider, HereProviderError, HereProviderResult, HereProviderStatus } from "../provider";
-import { createRequest, getResponse, deleteRequest, proxyApi, getRequest } from "./methods";
+import { createRequest, getResponse, deleteRequest, proxyApi, getRequest, getDeeplinkUrl } from "./methods";
 
-export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, ...delegate }) => {
-  if (id != null) args = await getRequest(id, signal);
-  else id = await createRequest(args, signal);
+export const proxyProvider: HereProvider = async (conf) => {
+  let { strategy, network, disableCleanupRequest, id, transactions = [], signal, ...delegate } = conf;
+  if (id != null) {
+    const request = await getRequest(id, signal);
+    transactions = request.transactions;
+    network = request.network ?? network ?? "mainnet";
+  } else id = await createRequest({ transactions, network }, signal);
 
   return new Promise<HereProviderResult>((resolve, reject: (e: HereProviderError) => void) => {
     const socketApi = proxyApi.replace("https", "wss");
@@ -15,7 +19,9 @@ export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, 
       fallbackHttpTimer = -1;
       clearInterval(fallbackHttpTimer);
       socket?.close();
-      await deleteRequest(id!);
+      if (disableCleanupRequest !== true) {
+        await deleteRequest(id!);
+      }
     };
 
     const processApprove = (data: HereProviderResult) => {
@@ -45,9 +51,8 @@ export const proxyProvider: HereProvider = async ({ strategy, id, args, signal, 
       processApprove({ status: HereProviderStatus.FAILED, payload });
     };
 
-    const deeplink = `${proxyApi}/${id}`;
-    delegate.onRequested?.(deeplink, args, rejectAction);
-    strategy?.onRequested?.(deeplink, args, rejectAction);
+    delegate.onRequested?.({ transactions, network, id }, rejectAction);
+    strategy?.onRequested?.({ transactions, network, id }, rejectAction);
     signal?.addEventListener("abort", () => rejectAction());
 
     const setupTimer = () => {

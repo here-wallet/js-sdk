@@ -1,6 +1,7 @@
 import { HereStrategy } from "../strategy";
 import QRCode, { QRSettings } from "./qrcode";
 import logo from "./logo";
+import { HereProviderRequest } from "../provider";
 
 export { QRCode, logo };
 
@@ -18,8 +19,13 @@ export class QRCodeStrategy implements HereStrategy {
     return this.options.theme === "light" ? lightQR : darkQR;
   }
 
-  onRequested(value: string) {
-    this.qrcode = new QRCode({ ...this.themeConfig, ...this.options, value, withLogo: value.length <= 40 });
+  onRequested(request: HereProviderRequest) {
+    this.qrcode = new QRCode({
+      ...this.themeConfig,
+      ...this.options,
+      value: `https://h4n.app/${request.id}`,
+    });
+
     this.options.element.appendChild(this.qrcode.canvas);
     this.options.animate ? this.qrcode.animate() : this.qrcode.render();
   }
@@ -42,8 +48,9 @@ export const darkQR: QRSettings = {
     type: "linear-gradient",
     position: [0, 0, 1, 1],
     colorStops: [
-      [0, "#FFC152"],
-      [1, "#FF4D33"],
+      [0, "#2C3034"],
+      [0.34, "#4F5256"],
+      [1, "#2C3034"],
     ],
   },
   size: 256,

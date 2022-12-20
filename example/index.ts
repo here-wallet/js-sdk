@@ -42,16 +42,16 @@ const instantSignin = async (here: HereWallet) => {
 };
 
 const main = async () => {
-  const here = await HereWallet.initialize();
-  if (here.isSignedIn) {
-    uikit.loginState(here.getAccountId());
+  const here = new HereWallet();
+  if (await here.isSignedIn()) {
+    uikit.loginState(await here.getAccountId());
   } else {
     uikit.logoutState();
     instantSignin(here);
   }
 
   uikit.connectBtn.onclick = async () => {
-    if (here.isSignedIn) {
+    if (await here.isSignedIn()) {
       here.signOut();
       uikit.logoutState();
       await instantSignin(here);
@@ -63,18 +63,36 @@ const main = async () => {
   };
 
   uikit.fnCallBtn?.addEventListener("click", async () => {
-    const account = here.getAccountId();
-    const result = await here.signAndSendTransaction({
-      receiverId: "social.near",
-      actions: [
+    const account = await here.getAccountId();
+    const result = await here.signAndSendTransactions({
+      transactions: [
         {
-          type: "FunctionCall",
-          params: {
-            methodName: "set",
-            args: { data: { [account]: { profile: { hereUser: "yes" } } } },
-            gas: "30000000000000",
-            deposit: "1",
-          },
+          receiverId: "social.near",
+          actions: [
+            {
+              type: "FunctionCall",
+              params: {
+                methodName: "set",
+                args: { data: { [account]: { profile: { hereUser: "yes" } } } },
+                gas: "30000000000000",
+                deposit: "1",
+              },
+            },
+          ],
+        },
+        {
+          receiverId: "usn",
+          actions: [
+            {
+              type: "FunctionCall",
+              params: {
+                methodName: "transfer",
+                args: { amount: "10000000000000" },
+                gas: "30000000000000",
+                deposit: "1",
+              },
+            },
+          ],
         },
       ],
     });
