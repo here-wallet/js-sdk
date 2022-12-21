@@ -1,3 +1,4 @@
+export type Base64 = string;
 export interface CreateAccountAction {
   type: "CreateAccount";
 }
@@ -11,8 +12,8 @@ export interface FunctionCallAction {
   type: "FunctionCall";
   params: {
     methodName: string;
-    args: object;
-    gas: string;
+    args: object | Base64;
+    gas: string | number;
     deposit: string;
   };
 }
@@ -36,6 +37,7 @@ export declare type AddKeyPermission =
       allowance?: string;
       methodNames?: Array<string>;
     };
+
 export interface AddKeyAction {
   type: "AddKey";
   params: {

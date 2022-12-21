@@ -6,15 +6,6 @@ import { getDeviceId } from "../utils";
 
 export const proxyApi = "https://h4n.app";
 
-export const getDeeplinkUrl = (network: string) => {
-  switch (network) {
-    case "mainnet":
-      return "https://h4n.app";
-    default:
-      return "testnet.herewallet://h4n.app";
-  }
-};
-
 export const getRequest = async (id: string, signal?: AbortSignal): Promise<HereProviderRequest> => {
   const res = await fetch(`${proxyApi}/${id}/request`, {
     signal,

@@ -1,6 +1,8 @@
 import { isMobile } from "../utils";
 import { HereProvider, HereProviderError, HereProviderResult, HereProviderStatus } from "../provider";
-import { createRequest, getResponse, deleteRequest, proxyApi, getRequest, getDeeplinkUrl } from "./methods";
+import { createRequest, getResponse, deleteRequest, proxyApi, getRequest } from "./methods";
+
+export { createRequest, getResponse, deleteRequest, proxyApi, getRequest };
 
 export const proxyProvider: HereProvider = async (conf) => {
   let { strategy, network, disableCleanupRequest, id, transactions = [], signal, ...delegate } = conf;

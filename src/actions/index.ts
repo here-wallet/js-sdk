@@ -12,6 +12,11 @@ const getAccessKey = (permission: AddKeyPermission) => {
   return transactions.functionCallAccessKey(receiverId, methodNames, allowance);
 };
 
+export const parseArgs = (data: Object | string) => {
+  if (typeof data === "string") return new Uint8Array(Buffer.from(data, "base64"));
+  return data;
+};
+
 export const createAction = (action: Action) => {
   switch (action.type) {
     case "CreateAccount":
@@ -24,7 +29,7 @@ export const createAction = (action: Action) => {
 
     case "FunctionCall": {
       const { methodName, args, gas, deposit } = action.params;
-      return transactions.functionCall(methodName, args, new BN(gas), new BN(deposit));
+      return transactions.functionCall(methodName, parseArgs(args), new BN(gas), new BN(deposit));
     }
 
     case "Transfer": {
