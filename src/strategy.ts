@@ -9,7 +9,7 @@ export interface HereStrategy {
 }
 
 export class DefaultStrategy implements HereStrategy {
-  constructor(readonly url = "https://h4n.app") {}
+  constructor(readonly mainnet = "https://h4n.app", readonly testnet = "https://my.herewallet.app") {}
 
   signWindow: Window | null = null;
   unloadHandler?: () => void;
@@ -21,7 +21,7 @@ export class DefaultStrategy implements HereStrategy {
     const left = window.innerWidth / 2 - 420 / 2;
     const top = window.innerHeight / 2 - 700 / 2;
     this.signWindow = window.open(
-      `${this.url}/loading`,
+      "https://my.herewallet.app/loading",
       "_blank",
       `popup=1,width=420,height=700,top=${top},left=${left}`
     );
@@ -33,7 +33,8 @@ export class DefaultStrategy implements HereStrategy {
     this.unloadHandler = () => this.signWindow?.close();
     window.addEventListener("beforeunload", this.unloadHandler);
 
-    this.signWindow.location = `${this.url}/${request.id}`;
+    const network = request.network ?? "mainnet";
+    this.signWindow.location = `${network ? this.testnet : this.mainnet}/${request.id}`;
     this.timerHandler = setInterval(() => {
       if (this.signWindow?.closed) reject("CLOSED");
     }, 1000);

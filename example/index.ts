@@ -42,7 +42,7 @@ const instantSignin = async (here: HereWallet) => {
 };
 
 const main = async () => {
-  const here = new HereWallet();
+  const here = new HereWallet({ networkId: "testnet" });
   if (await here.isSignedIn()) {
     uikit.loginState(await here.getAccountId());
   } else {
