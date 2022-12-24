@@ -5,12 +5,13 @@ import { FinalExecutionOutcome } from "near-api-js/lib/providers";
 import { HereStrategy } from "./strategy";
 import { HereProvider } from "./provider";
 import { HereAuthStorage } from "./HereKeyStore";
-import { Optional, Transaction } from "./actions/types";
+import { Base64, Optional, Transaction } from "./actions/types";
+import { PublicKey } from "near-api-js/lib/utils";
 
 export type HereCall = Optional<Transaction, "signerId">;
 
 export interface HereSignedResult {
-  signature: string;
+  signature: Base64;
   publicKey: string;
   accountId: string;
 }
@@ -57,7 +58,11 @@ export interface HereWalletProtocol {
   getHereBalance: () => Promise<BN>;
   getAvailableBalance: () => Promise<BN>;
   signIn: (data: SignInOptions) => Promise<string>;
-  signMessage: (data: SignMessageOptions) => Promise<HereSignedResult>;
+  signMessage: (data: SignMessageOptions) => Promise<{
+    signature: Uint8Array;
+    publicKey: PublicKey;
+    accountId: string;
+  }>;
 
   signAndSendTransaction: (data: SignAndSendTransactionOptions) => Promise<FinalExecutionOutcome>;
   signAndSendTransactions: (data: SignAndSendTransactionsOptions) => Promise<Array<FinalExecutionOutcome>>;

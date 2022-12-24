@@ -276,7 +276,11 @@ export class HereWallet implements HereWalletProtocol {
       });
 
       if (isValid === false) throw Error();
-      return { publicKey, signature, accountId };
+      return {
+        signature: new Uint8Array(Buffer.from(signature, "base64")),
+        publicKey: PublicKey.from(publicKey),
+        accountId,
+      };
     } catch {
       throw Error("Signature not correct");
     }
