@@ -5,12 +5,9 @@ import { createRequest, getResponse, deleteRequest, proxyApi, getRequest } from 
 export { createRequest, getResponse, deleteRequest, proxyApi, getRequest };
 
 export const proxyProvider: HereProvider = async (conf) => {
-  let { strategy, network, disableCleanupRequest, id, transactions = [], signal, ...delegate } = conf;
-  if (id != null) {
-    const request = await getRequest(id, signal);
-    transactions = request.transactions;
-    network = request.network ?? network ?? "mainnet";
-  } else id = await createRequest({ transactions, network }, signal);
+  let { strategy, request, disableCleanupRequest, id, signal, ...delegate } = conf;
+  if (id != null) request = await getRequest(id, signal);
+  else id = await createRequest(request, signal);
 
   return new Promise<HereProviderResult>((resolve, reject: (e: HereProviderError) => void) => {
     const socketApi = proxyApi.replace("https", "wss");
@@ -53,8 +50,8 @@ export const proxyProvider: HereProvider = async (conf) => {
       processApprove({ status: HereProviderStatus.FAILED, payload });
     };
 
-    delegate.onRequested?.({ transactions, network, id }, rejectAction);
-    strategy?.onRequested?.({ transactions, network, id }, rejectAction);
+    delegate.onRequested?.(id!, request, rejectAction);
+    strategy?.onRequested?.(id!, request, rejectAction);
     signal?.addEventListener("abort", () => rejectAction());
 
     const setupTimer = () => {

@@ -2,7 +2,7 @@ import { HereProviderRequest, HereProviderResult } from "./provider";
 
 export interface HereStrategy {
   onInitialized?: () => void;
-  onRequested?: (request: HereProviderRequest, reject: (p?: string) => void) => void;
+  onRequested?: (id: string, request: HereProviderRequest, reject: (p?: string) => void) => void;
   onApproving?: (result: HereProviderResult) => void;
   onSuccess?: (result: HereProviderResult) => void;
   onFailed?: (result: HereProviderResult) => void;
@@ -27,14 +27,14 @@ export class DefaultStrategy implements HereStrategy {
     );
   }
 
-  onRequested(request: HereProviderRequest, reject: (p?: string) => void) {
+  onRequested(id: string, request: HereProviderRequest, reject: (p?: string) => void) {
     if (this.signWindow == null) return;
 
     this.unloadHandler = () => this.signWindow?.close();
     window.addEventListener("beforeunload", this.unloadHandler);
 
     const network = request.network ?? "mainnet";
-    this.signWindow.location = `${network ? this.testnet : this.mainnet}/${request.id}`;
+    this.signWindow.location = `${network ? this.testnet : this.mainnet}/${id}`;
     this.timerHandler = setInterval(() => {
       if (this.signWindow?.closed) reject("CLOSED");
     }, 1000);

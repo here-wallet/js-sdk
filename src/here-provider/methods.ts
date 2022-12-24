@@ -52,7 +52,7 @@ export const deleteRequest = async (id: string) => {
 };
 
 export const createRequest = async (request: HereProviderRequest, signal?: AbortSignal) => {
-  const query = base_encode(JSON.stringify({ ...request, id: uuid4() }));
+  const query = base_encode(JSON.stringify({ ...request, _id: uuid4() }));
   const hashsum = sha1(query);
   const id = Buffer.from(hashsum, "hex").toString("base64");
   const urlsafe = id.replaceAll("/", "_").replaceAll("-", "+").slice(0, 13);

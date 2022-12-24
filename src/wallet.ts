@@ -1,5 +1,7 @@
 import { Account, Connection, InMemorySigner, KeyPair } from "near-api-js";
 import { FinalExecutionOutcome, JsonRpcProvider } from "near-api-js/lib/providers";
+import { PublicKey } from "near-api-js/lib/utils/key_pair";
+import { sha256 } from "js-sha256";
 import BN from "bn.js";
 
 import { HereAuthStorage, HereKeyStore } from "./HereKeyStore";
@@ -17,6 +19,7 @@ import {
   SignMessageOptions,
   SignInOptions,
   HereInitializeOptions,
+  HereSignedResult,
 } from "./types";
 
 class AccessDenied extends Error {}
@@ -39,8 +42,13 @@ export class HereWallet implements HereWalletProtocol {
     this.defaultStrategy = defaultStrategy;
 
     const signer = new InMemorySigner(this.authStorage);
-    const rpc = new JsonRpcProvider(nodeUrl ?? `https://rpc.${networkId}.near.org`);
-    this.connection = new Connection(networkId, rpc, signer);
+    const rpc = new JsonRpcProvider({ url: nodeUrl ?? `https://rpc.${networkId}.near.org` });
+    this.connection = Connection.fromConfig({
+      jsvmAccountId: `jsvm.${networkId}`,
+      provider: rpc,
+      networkId,
+      signer,
+    });
   }
 
   get rpc() {
@@ -124,20 +132,23 @@ export class HereWallet implements HereWalletProtocol {
       const permission = { receiverId: contractId, methodNames, allowance };
       const data = await delegate.provider({
         ...delegate,
-        network: this.networkId,
-        transactions: [
-          {
-            actions: [
-              {
-                type: "AddKey",
-                params: {
-                  publicKey: accessKey.getPublicKey().toString(),
-                  accessKey: { permission },
+        request: {
+          type: "call",
+          network: this.networkId,
+          transactions: [
+            {
+              actions: [
+                {
+                  type: "AddKey",
+                  params: {
+                    publicKey: accessKey.getPublicKey().toString(),
+                    accessKey: { permission },
+                  },
                 },
-              },
-            ],
-          },
-        ],
+              ],
+            },
+          ],
+        },
       });
 
       if (data.account_id == null) {
@@ -201,9 +212,12 @@ export class HereWallet implements HereWalletProtocol {
         }
 
         const data = await delegate.provider({
-          transactions: [{ actions, receiverId, signerId }],
-          network: this.networkId,
           ...delegate,
+          request: {
+            type: "call",
+            transactions: [{ actions, receiverId, signerId }],
+            network: this.networkId,
+          },
         });
 
         if (data.payload == null || data.account_id == null) {
@@ -218,11 +232,54 @@ export class HereWallet implements HereWalletProtocol {
     }
   }
 
-  public async signMessage({ signerId, message }: SignMessageOptions) {
-    const account = await this.account(signerId);
-    const key = await this.authStorage.getKey(this.networkId, account.accountId);
-    if (key == null) throw Error("sigin");
-    return key.sign(message);
+  // Implement NEP0413
+  public async signMessage({ message, receiver, ...delegate }: SignMessageOptions) {
+    delegate.strategy = delegate.strategy ?? this.defaultStrategy();
+    delegate.provider = delegate.provider ?? this.defaultProvider;
+    delegate.onInitialized?.();
+    delegate.strategy?.onInitialized?.();
+
+    let nonceArray: Uint8Array = new Uint8Array(32);
+    nonceArray = crypto.getRandomValues(nonceArray);
+    const nonce = [...nonceArray];
+
+    const data = await delegate.provider({
+      ...delegate,
+      request: {
+        type: "sign",
+        message,
+        receiver,
+        nonce,
+        network: this.networkId,
+      },
+    });
+
+    if (data.payload == null) {
+      throw Error("Signature not found");
+    }
+
+    try {
+      const { publicKey, signature, accountId }: HereSignedResult = JSON.parse(data.payload);
+      const sign = new Uint8Array(Buffer.from(signature, "base64"));
+      const json = JSON.stringify({ message, receiver, nonce });
+      const msg = new Uint8Array(sha256.digest(`NEP0413:` + json));
+      const isVerify = PublicKey.from(publicKey).verify(msg, sign);
+      if (isVerify === false) throw Error();
+
+      const account = await this.account(accountId);
+      const keys = await account.getAccessKeys();
+      const pb = publicKey.toString();
+      const isValid = keys.some((k) => {
+        if (k.public_key !== pb) return false;
+        if (k.access_key.permission !== "FullAccess") return false;
+        return true;
+      });
+
+      if (isValid === false) throw Error();
+      return { publicKey, signature, accountId };
+    } catch {
+      throw Error("Signature not correct");
+    }
   }
 
   public async signAndSendTransactions({ transactions, ...delegate }: SignAndSendTransactionsOptions) {
@@ -255,8 +312,11 @@ export class HereWallet implements HereWalletProtocol {
         const uncompleted = transactions.slice(results.length);
         const data = await delegate.provider({
           ...delegate,
-          transactions: uncompleted,
-          network: this.networkId,
+          request: {
+            type: "call",
+            transactions: uncompleted,
+            network: this.networkId,
+          },
         });
 
         if (data.payload == null || data.account_id == null) {

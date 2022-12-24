@@ -1,19 +1,28 @@
-import { Optional, Transaction } from "./actions/types";
 import { HereStrategy } from "./strategy";
+import { HereCall } from "./types";
+
+export type HereProviderSign = {
+  network?: string;
+  message: string;
+  receiver: string;
+  nonce: number[];
+  type: "sign";
+};
+
+export type HereProviderCall = {
+  network?: string;
+  transactions: HereCall[];
+  type: "call";
+};
+
+export type HereProviderRequest = HereProviderCall | HereProviderSign;
 
 export interface HereProviderOptions extends HereStrategy {
   id?: string;
-  network?: string;
-  signal?: AbortSignal;
-  transactions?: Optional<Transaction, "signerId">[];
+  request: HereProviderCall | HereProviderSign;
   disableCleanupRequest?: boolean;
   strategy?: HereStrategy;
-}
-
-export interface HereProviderRequest {
-  transactions: Optional<Transaction, "signerId">[];
-  network?: string;
-  id?: string;
+  signal?: AbortSignal;
 }
 
 export enum HereProviderStatus {

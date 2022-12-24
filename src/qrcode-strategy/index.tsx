@@ -27,13 +27,13 @@ export class QRCodeStrategy implements HereStrategy {
     return this.options.theme === "light" ? lightQR : darkQR;
   }
 
-  onRequested(request: HereProviderRequest) {
+  onRequested(id: string, request: HereProviderRequest) {
     const network = request.network ?? "mainnet";
 
     this.qrcode = new QRCode({
       ...this.themeConfig,
       ...this.options,
-      value: `${network ? this.testnet : this.mainnet}/${request.id}`,
+      value: `${network === "mainnet" ? this.mainnet : this.testnet}/${id}`,
     });
 
     this.options.element.appendChild(this.qrcode.canvas);
