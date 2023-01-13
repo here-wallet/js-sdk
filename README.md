@@ -11,12 +11,12 @@ npm i @here-wallet/core --save
 
 ```ts
 import { HereWallet } from "@here-wallet/core";
-
 const here = new HereWallet()
 const account = await here.signIn({ contractId: "social.near" });
-
 console.log(`Hello ${account}!`);
 ```
+
+**You can also login to the wallet without adding a key. For this you can call `signIn` without `contractId`**
 
 ## How it works
 
@@ -73,6 +73,28 @@ const tx = await here.signAndSendTransaction({
 
 console.log("Thanks for the donation!")
 ```
+
+## Login without AddKey
+In order to use the wallet for authorization on the backend, you need to use the signMessage method.
+This method signs your message with a private full access key inside the wallet. You can also use this just to securely get your user's accountId without any extra transactions.
+
+```ts
+import { HereWallet } from "@here-wallet/core";
+const here = new HereWallet()
+const { signature, message, publicKey, accountId } = await here.signMessage({
+  message: 'Auth message', // some useful information for the user about the service he is accessing
+  receiver: 'google.com', // displayed in the wallet as the recipient of the signature
+});
+
+const accessToken = await postToYourBackend({ signature, accountId, message, publicKey })
+console.log("Auth completed!")
+```
+
+If you use js-sdk on your backend, then you do not need to additionally check the signature and key, the library does this, and if the signature is invalid or the key is not a full access key, then the method returns an error.
+Otherwise, on the backend, you need to verify the signature and message with this public key. And also check that this public key is the full access key for this accountId.
+
+**It's important to understand** that the returned message is not the same as the message you submitted for signature.
+This message conforms to the standard: https://github.com/near/NEPs/pull/413
 
 ## Strategy and Events
 

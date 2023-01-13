@@ -1,6 +1,6 @@
 import { Account, Connection, InMemorySigner, KeyPair } from "near-api-js";
 import { FinalExecutionOutcome, JsonRpcProvider } from "near-api-js/lib/providers";
-import { PublicKey } from "near-api-js/lib/utils/key_pair";
+import { PublicKey, KeyPairEd25519 } from "near-api-js/lib/utils/key_pair";
 import { sha256 } from "js-sha256";
 import BN from "bn.js";
 
@@ -121,7 +121,20 @@ export class HereWallet implements HereWalletProtocol {
     await this.authStorage.setActiveAccount(this.networkId, id);
   }
 
-  public async signIn({ contractId, allowance, methodNames = [], ...delegate }: SignInOptions): Promise<string> {
+  public async signIn({ contractId, allowance, methodNames = [], ...delegate }: SignInOptions = {}): Promise<string> {
+    if (contractId == null) {
+      const { accountId } = await this.signMessage({
+        receiver: window.location.host,
+        message: "Sign this message to sign in",
+        ...delegate,
+      });
+
+      // Generate random keypair
+      await this.authStorage.setKey(this.networkId, accountId, KeyPairEd25519.fromRandom());
+      await this.authStorage.setActiveAccount(this.networkId, accountId);
+      return accountId;
+    }
+
     delegate.strategy = delegate.strategy ?? this.defaultStrategy();
     delegate.provider = delegate.provider ?? this.defaultProvider;
     delegate.onInitialized?.();
@@ -232,16 +245,17 @@ export class HereWallet implements HereWalletProtocol {
     }
   }
 
-  // Implement NEP0413
-  public async signMessage({ message, receiver, ...delegate }: SignMessageOptions) {
+  /** Implement NEP0413 */
+  public async signMessage({ message, receiver, nonce, ...delegate }: SignMessageOptions) {
     delegate.strategy = delegate.strategy ?? this.defaultStrategy();
     delegate.provider = delegate.provider ?? this.defaultProvider;
     delegate.onInitialized?.();
     delegate.strategy?.onInitialized?.();
 
-    let nonceArray: Uint8Array = new Uint8Array(32);
-    nonceArray = crypto.getRandomValues(nonceArray);
-    const nonce = [...nonceArray];
+    if (nonce == null) {
+      let nonceArray: Uint8Array = new Uint8Array(32);
+      nonce = [...crypto.getRandomValues(nonceArray)];
+    }
 
     const data = await delegate.provider({
       ...delegate,
@@ -279,7 +293,10 @@ export class HereWallet implements HereWalletProtocol {
       return {
         signature: new Uint8Array(Buffer.from(signature, "base64")),
         publicKey: PublicKey.from(publicKey),
+        message: `NEP0413:` + json,
+        receiver,
         accountId,
+        nonce,
       };
     } catch {
       throw Error("Signature not correct");

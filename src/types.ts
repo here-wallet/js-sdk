@@ -23,14 +23,24 @@ export interface HereAsyncOptions extends HereStrategy {
 }
 
 export interface SignInOptions extends HereAsyncOptions {
-  contractId: string;
+  contractId?: string;
   allowance?: string;
   methodNames?: string[];
 }
 
 export type SignAndSendTransactionOptions = HereAsyncOptions & HereCall;
 export type SignMessageOptions = HereAsyncOptions & {
+  nonce?: number[];
   message: string;
+  receiver: string;
+};
+
+export type SignMessageReturn = {
+  signature: Uint8Array;
+  publicKey: PublicKey;
+  accountId: string;
+  message: string;
+  nonce: number[];
   receiver: string;
 };
 
@@ -58,12 +68,7 @@ export interface HereWalletProtocol {
   getHereBalance: () => Promise<BN>;
   getAvailableBalance: () => Promise<BN>;
   signIn: (data: SignInOptions) => Promise<string>;
-  signMessage: (data: SignMessageOptions) => Promise<{
-    signature: Uint8Array;
-    publicKey: PublicKey;
-    accountId: string;
-  }>;
-
+  signMessage: (data: SignMessageOptions) => Promise<SignMessageReturn>;
   signAndSendTransaction: (data: SignAndSendTransactionOptions) => Promise<FinalExecutionOutcome>;
   signAndSendTransactions: (data: SignAndSendTransactionsOptions) => Promise<Array<FinalExecutionOutcome>>;
 }
