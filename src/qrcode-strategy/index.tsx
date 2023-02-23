@@ -1,7 +1,7 @@
-import { HereStrategy } from "../strategy";
+import { HereStrategy } from "../types";
+import { HereProviderRequest } from "../provider";
 import QRCode, { QRSettings } from "./qrcode";
 import logo from "./logo";
-import { HereProviderRequest } from "../provider";
 
 export { QRCode, logo };
 

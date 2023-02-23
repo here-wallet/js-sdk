@@ -1,12 +1,11 @@
 import BN from "bn.js";
 import { Account } from "near-api-js";
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
+import { PublicKey } from "near-api-js/lib/utils";
 
-import { HereStrategy } from "./strategy";
-import { HereProvider } from "./provider";
+import { HereProvider, HereProviderRequest, HereProviderResult } from "./provider";
 import { HereAuthStorage } from "./HereKeyStore";
 import { Base64, Optional, Transaction } from "./actions/types";
-import { PublicKey } from "near-api-js/lib/utils";
 
 export type HereCall = Optional<Transaction, "signerId">;
 
@@ -54,6 +53,14 @@ export interface HereInitializeOptions {
   authStorage?: HereAuthStorage;
   defaultStrategy?: () => HereStrategy;
   defaultProvider?: HereProvider;
+}
+
+export interface HereStrategy {
+  onInitialized?: () => void;
+  onRequested?: (id: string, request: HereProviderRequest, reject: (p?: string) => void) => void;
+  onApproving?: (result: HereProviderResult) => void;
+  onSuccess?: (result: HereProviderResult) => void;
+  onFailed?: (result: HereProviderResult) => void;
 }
 
 export interface HereWalletProtocol {

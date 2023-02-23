@@ -1,5 +1,4 @@
-import { HereStrategy } from "./strategy";
-import { HereCall } from "./types";
+import { HereCall, HereStrategy } from "./types";
 
 export type HereProviderSign = {
   network?: string;
@@ -15,11 +14,17 @@ export type HereProviderCall = {
   type: "call";
 };
 
-export type HereProviderRequest = HereProviderCall | HereProviderSign;
+export type HereProviderImport = {
+  type: "import";
+  keystore: string;
+  network?: string;
+};
+
+export type HereProviderRequest = HereProviderCall | HereProviderSign | HereProviderImport;
 
 export interface HereProviderOptions extends HereStrategy {
   id?: string;
-  request: HereProviderCall | HereProviderSign;
+  request: HereProviderRequest;
   disableCleanupRequest?: boolean;
   strategy?: HereStrategy;
   signal?: AbortSignal;

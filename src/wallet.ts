@@ -6,10 +6,10 @@ import BN from "bn.js";
 
 import { HereAuthStorage, HereKeyStore } from "./HereKeyStore";
 import { HereProvider, HereProviderStatus } from "./provider";
-import { DefaultStrategy, HereStrategy } from "./strategy";
 import { internalThrow, isValidAccessKey } from "./utils";
 import { proxyProvider } from "./here-provider";
 import { createAction } from "./actions";
+import { WidgetStrategy } from "./WidgetStrategy";
 import {
   HereCall,
   HereAsyncOptions,
@@ -20,6 +20,7 @@ import {
   SignInOptions,
   HereInitializeOptions,
   HereSignedResult,
+  HereStrategy,
 } from "./types";
 
 class AccessDenied extends Error {}
@@ -34,7 +35,7 @@ export class HereWallet implements HereWalletProtocol {
     nodeUrl,
     networkId = "mainnet",
     authStorage = new HereKeyStore(),
-    defaultStrategy = () => new DefaultStrategy(),
+    defaultStrategy = () => new WidgetStrategy(),
     defaultProvider = proxyProvider,
   }: HereInitializeOptions = {}) {
     this.authStorage = authStorage;

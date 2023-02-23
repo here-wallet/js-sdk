@@ -1,14 +1,7 @@
-import { HereProviderRequest, HereProviderResult } from "./provider";
+import { HereProviderRequest } from "./provider";
+import { HereStrategy } from "./types";
 
-export interface HereStrategy {
-  onInitialized?: () => void;
-  onRequested?: (id: string, request: HereProviderRequest, reject: (p?: string) => void) => void;
-  onApproving?: (result: HereProviderResult) => void;
-  onSuccess?: (result: HereProviderResult) => void;
-  onFailed?: (result: HereProviderResult) => void;
-}
-
-export class DefaultStrategy implements HereStrategy {
+export class WindowStrategy implements HereStrategy {
   constructor(readonly mainnet = "https://h4n.app", readonly testnet = "https://my.herewallet.app") {}
 
   signWindow: Window | null = null;

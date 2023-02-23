@@ -1,6 +1,6 @@
 {
   "name": "@here-wallet/core",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -8,16 +8,12 @@
   "exports": {
     ".": "./build/index.js",
     "./qrcode-strategy": "./build/qrcode-strategy/index.js",
-    "./legacy-provider": "./build/legacy-provider/index.js",
     "./here-provider": "./build/here-provider/index.js"
   },
   "typesVersions": {
     "*": {
       "qrcode-strategy": [
         "build/qrcode-strategy/index.d.ts"
-      ],
-      "legacy-provider": [
-        "build/legacy-provider/index.d.ts"
       ],
       "here-provider": [
         "build/here-provider/index.d.ts"
