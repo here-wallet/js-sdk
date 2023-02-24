@@ -13,7 +13,7 @@ const getAccessKey = (permission: AddKeyPermission) => {
 };
 
 export const parseArgs = (data: Object | string) => {
-  if (typeof data === "string") return new Uint8Array(Buffer.from(data, "base64"));
+  if (typeof data === "string") return Buffer.from(data, "base64");
   return data;
 };
 

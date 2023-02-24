@@ -6,7 +6,7 @@ import BN from "bn.js";
 
 import { HereAuthStorage, HereKeyStore } from "./HereKeyStore";
 import { HereProvider, HereProviderStatus } from "./provider";
-import { internalThrow, isValidAccessKey } from "./utils";
+import { internalThrow, isValidAccessKey, serializeActions } from "./utils";
 import { proxyProvider } from "./here-provider";
 import { createAction } from "./actions";
 import { WidgetStrategy } from "./WidgetStrategy";
@@ -229,7 +229,7 @@ export class HereWallet implements HereWalletProtocol {
           ...delegate,
           request: {
             type: "call",
-            transactions: [{ actions, receiverId, signerId }],
+            transactions: [{ actions: serializeActions(actions), receiverId, signerId }],
             network: this.networkId,
           },
         });
@@ -336,7 +336,10 @@ export class HereWallet implements HereWalletProtocol {
           ...delegate,
           request: {
             type: "call",
-            transactions: uncompleted,
+            transactions: uncompleted.map((trx) => ({
+              ...trx,
+              actions: serializeActions(trx.actions),
+            })),
             network: this.networkId,
           },
         });

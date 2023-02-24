@@ -2,6 +2,7 @@ import uuid4 from "uuid4";
 import { AccessKeyInfoView } from "near-api-js/lib/providers/provider";
 import { HereProviderError, HereProviderResult, HereProviderStatus } from "./provider";
 import { HereAsyncOptions, HereCall } from "./types";
+import { Action } from "./actions/types";
 
 export const getDeviceId = () => {
   const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
@@ -11,6 +12,26 @@ export const getDeviceId = () => {
 
 export const isMobile = () => {
   return window.matchMedia("(any-pointer:coarse)").matches;
+};
+
+export const serializeActions = (actions: Action[]) => {
+  return actions.map<Action>((act) => {
+    if (act.type !== "FunctionCall") return act;
+    let { args, deposit, gas, methodName } = act.params;
+
+    if (ArrayBuffer.isView(args)) {
+      args = Buffer.from(args.buffer, args.byteOffset, args.byteLength);
+    }
+
+    if (args instanceof Buffer) {
+      args = args.toString("base64");
+    }
+
+    return {
+      type: act.type,
+      params: { args, deposit, gas, methodName },
+    };
+  });
 };
 
 export const getPublicKeys = async (
@@ -66,11 +87,18 @@ export const isValidAccessKey = (accountId: string, accessKey: AccessKeyInfoView
 
   if (permission.FunctionCall) {
     const { receiver_id: allowedReceiverId, method_names: allowedMethods } = permission.FunctionCall;
+
+    /********************************
+    Accept multisig access keys and let wallets attempt to signAndSendTransaction
+    If an access key has itself as receiverId and method permission add_request_and_confirm, then it is being used in a wallet with multisig contract: https://github.com/near/core-contracts/blob/671c05f09abecabe7a7e58efe942550a35fc3292/multisig/src/lib.rs#L149-L153
+    ********************************/
     if (allowedReceiverId === accountId && allowedMethods.includes("add_request_and_confirm")) {
-      return accessKey;
+      return true;
     }
 
     if (allowedReceiverId === call.receiverId) {
+      if (call.actions.length !== 1) return false;
+
       return call.actions.every((action) => {
         if (action.type !== "FunctionCall") return false;
         return (
