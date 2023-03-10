@@ -17,13 +17,14 @@ export interface QRSettings {
   quiet?: number;
   background?: string;
   withLogo: boolean;
+  logo?: HTMLImageElement;
   size: number;
 }
 
 const logoImage = new Image();
 logoImage.src = logo;
 
-class QRCodeLogo {
+export class QRCodeLogo {
   private quietModuleCount = 0;
   private moduleSize = 0;
   private dataPixels = 0;
@@ -138,7 +139,7 @@ class QRCode {
     this.canvas.height = settings.size;
 
     if (settings.withLogo) {
-      this.logo = new QRCodeLogo(settings, this.qr);
+      this.logo = new QRCodeLogo(settings, this.qr, settings.logo);
       this.logo.img.addEventListener("load", () => this.render());
     }
   }
