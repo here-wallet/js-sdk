@@ -1,5 +1,5 @@
 import { KeyStore } from "near-api-js/lib/key_stores";
-import { KeyPair, KeyPairEd25519 } from "near-api-js/lib/utils/key_pair";
+import { KeyPair } from "near-api-js/lib/utils/key_pair";
 import { HereJsonStorage, StateStorage } from "./JSONStorage";
 
 export interface HereAuthStorage extends KeyStore {
@@ -36,7 +36,7 @@ export class HereKeyStore implements HereAuthStorage {
     const state = await this.storage.getState(networkId);
     const privateKey = state.accounts[accountId];
     if (privateKey == null) throw Error(`For ${accountId} in ${networkId} network key not found`);
-    const keyPair = KeyPairEd25519.fromString(privateKey);
+    const keyPair = KeyPair.fromString(privateKey);
     return keyPair;
   }
 

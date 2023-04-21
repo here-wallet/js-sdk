@@ -93,9 +93,15 @@ export class HereWallet implements HereWalletProtocol {
 
   public async getHereBalance(id?: string) {
     const account = await this.account(id);
-    const params = { account_id: account.accountId };
-    const contract = this.networkId === "mainnet" ? "here.storage.near" : "here.storage.testnet";
-    const hereCoins = await account.viewFunction(contract, "ft_balance_of", params).catch(() => "0");
+    const contractId = this.networkId === "mainnet" ? "here.storage.near" : "here.storage.testnet";
+    const hereCoins = await account
+      .viewFunction({
+        args: { account_id: account.accountId },
+        methodName: "ft_balance_of",
+        contractId,
+      })
+      .catch(() => "0");
+    
     return new BN(hereCoins);
   }
 
@@ -194,7 +200,6 @@ export class HereWallet implements HereWalletProtocol {
 
     if (isValid === false) throw new AccessDenied();
 
-    // @ts-expect-error
     return await account.signAndSendTransaction({
       actions: actions.map((a) => createAction(a)),
       receiverId: receiverId ?? account.accountId,
