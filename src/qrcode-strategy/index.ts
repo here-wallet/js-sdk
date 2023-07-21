@@ -9,18 +9,15 @@ export interface QRCodeStrategyOptions extends Partial<QRSettings> {
   element: HTMLElement;
   theme?: "dark" | "light";
   animate?: boolean;
-  mainnet?: string;
-  testnet?: string;
+  endpoint?: string;
 }
 
 export class QRCodeStrategy implements HereStrategy {
   private qrcode?: QRCode;
-  readonly mainnet: string = "https://h4n.app";
-  readonly testnet: string = "https://my.herewallet.app";
+  readonly endpoint: string;
 
   constructor(public options: QRCodeStrategyOptions) {
-    this.mainnet = options.mainnet ?? this.mainnet;
-    this.testnet = options.testnet ?? this.testnet;
+    this.endpoint = options.endpoint ?? "https://my.herewallet.app/request";
   }
 
   get themeConfig() {
@@ -28,12 +25,10 @@ export class QRCodeStrategy implements HereStrategy {
   }
 
   onRequested(id: string, request: HereProviderRequest) {
-    const network = request.network ?? "mainnet";
-
     this.qrcode = new QRCode({
       ...this.themeConfig,
       ...this.options,
-      value: `${network === "mainnet" ? this.mainnet : this.testnet}/${id}`,
+      value: `${this.endpoint}/${id}`,
     });
 
     this.options.element.appendChild(this.qrcode.canvas);

@@ -20,7 +20,13 @@ export type HereProviderImport = {
   network?: string;
 };
 
-export type HereProviderRequest = HereProviderCall | HereProviderSign | HereProviderImport;
+export type HereProviderKeypom = {
+  type: "keypom";
+  contract: string;
+  secret: string;
+};
+
+export type HereProviderRequest = HereProviderCall | HereProviderSign | HereProviderImport | HereProviderKeypom;
 
 export interface HereProviderOptions extends HereStrategy {
   id?: string;
@@ -39,6 +45,7 @@ export enum HereProviderStatus {
 export interface HereProviderResult {
   account_id?: string;
   payload?: string;
+  topic?: string;
   status: HereProviderStatus;
 }
 

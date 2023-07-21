@@ -37,6 +37,7 @@ export const getResponse = async (id: string): Promise<HereProviderResult> => {
     account_id: result.account_id ?? "",
     payload: result.payload ?? "",
     status: result.status ?? -1,
+    topic: result.topic,
   };
 };
 
