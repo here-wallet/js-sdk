@@ -81,13 +81,27 @@ This method signs your message with a private full access key inside the wallet.
 ```ts
 import { HereWallet } from "@here-wallet/core";
 const here = new HereWallet()
-const { signature, message, publicKey, accountId } = await here.signMessage({
-  message: 'Auth message', // some useful information for the user about the service he is accessing
-  receiver: 'google.com', // displayed in the wallet as the recipient of the signature
-});
 
-const accessToken = await postToYourBackend({ signature, accountId, message, publicKey })
+const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+const recipient = window.location.host;
+const message = "Authenticate message"
+
+const { signature, publicKey, accountId } = await here.signMessage({ recipient, nonce, message });
+
+// Verify on you backend side, check NEP0413
+const accessToken = await axios.post(yourAPI, { signature, accountId, publicKey, nonce, message, recipient });
 console.log("Auth completed!")
+```
+
+Or you can verify signMessage on client side, just call:
+```ts
+try {
+  const { accountId } = await here.authenticate()
+  console.log(`Hello ${accountId}!`)
+} catch(e) {
+  console.log(e)
+}
+
 ```
 
 If you use js-sdk on your backend, then you do not need to additionally check the signature and key, the library does this, and if the signature is invalid or the key is not a full access key, then the method returns an error.
@@ -98,7 +112,7 @@ This message conforms to the standard: https://github.com/near/NEPs/pull/413
 
 ## Strategy and Events
 
-Methods **signIn**, **signAndSendTransaction**, **signAndSendTransactions** have additional parameters:
+All methods for interact with wallet have additional parameters:
 
 ```ts
 export interface HereOptions {

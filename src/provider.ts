@@ -1,12 +1,14 @@
-import { HereCall, HereStrategy } from "./types";
+import { HereCall, HereStrategy, SignMessageOptionsLegacy, SignMessageOptionsNEP0413 } from "./types";
 
-export type HereProviderSign = {
-  network?: string;
-  message: string;
-  receiver: string;
-  nonce: number[];
-  type: "sign";
-};
+export type HereProviderSign =
+  | ({ network?: string; type: "sign" } & SignMessageOptionsLegacy)
+  | {
+      network?: string;
+      type: "sign";
+      nonce: number[];
+      message: string;
+      recipient: string;
+    };
 
 export type HereProviderCall = {
   network?: string;

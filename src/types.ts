@@ -4,16 +4,10 @@ import { FinalExecutionOutcome } from "near-api-js/lib/providers";
 import { PublicKey } from "near-api-js/lib/utils";
 
 import { HereProvider, HereProviderRequest, HereProviderResult } from "./provider";
-import { HereAuthStorage } from "./HereKeyStore";
 import { Base64, Optional, Transaction } from "./actions/types";
+import { HereAuthStorage } from "./HereKeyStore";
 
 export type HereCall = Optional<Transaction, "signerId">;
-
-export interface HereSignedResult {
-  signature: Base64;
-  publicKey: string;
-  accountId: string;
-}
 
 export interface HereAsyncOptions extends HereStrategy {
   provider?: HereProvider;
@@ -28,19 +22,37 @@ export interface SignInOptions extends HereAsyncOptions {
 }
 
 export type SignAndSendTransactionOptions = HereAsyncOptions & HereCall;
-export type SignMessageOptions = HereAsyncOptions & {
+
+export type SignMessageOptionsLegacy = {
   nonce?: number[];
   message: string;
   receiver: string;
 };
 
-export type SignMessageReturn = {
+export type SignMessageOptionsNEP0413 = {
+  message: string; // The message that wants to be transmitted.
+  recipient: string; // The recipient to whom the message is destined (e.g. "alice.near" or "myapp.com").
+  nonce: Buffer; // A nonce that uniquely identifies this instance of the message, denoted as a 32 bytes array (a fixed `Buffer` in JS/TS).
+  callbackUrl?: string; // Optional, applicable to browser wallets (e.g. MyNearWallet). The URL to call after the signing process. Defaults to `window.location.href`.
+};
+
+export type SignMessageOptions =
+  | (HereAsyncOptions & SignMessageOptionsNEP0413)
+  | (HereAsyncOptions & SignMessageOptionsLegacy);
+
+export type SignMessageLegacyReturn = {
   signature: Uint8Array;
   publicKey: PublicKey;
   accountId: string;
   message: string;
   nonce: number[];
   receiver: string;
+};
+
+export type SignedMessageNEP0413 = {
+  signature: Base64;
+  publicKey: string;
+  accountId: string;
 };
 
 export interface SignAndSendTransactionsOptions extends HereAsyncOptions {
@@ -75,7 +87,10 @@ export interface HereWalletProtocol {
   getHereBalance: () => Promise<BN>;
   getAvailableBalance: () => Promise<BN>;
   signIn: (data: SignInOptions) => Promise<string>;
-  signMessage: (data: SignMessageOptions) => Promise<SignMessageReturn>;
+  signMessage: {
+    (data: HereAsyncOptions & SignMessageOptionsNEP0413): Promise<SignedMessageNEP0413>;
+    (data: HereAsyncOptions & SignMessageOptionsLegacy): Promise<SignMessageLegacyReturn>;
+  };
   signAndSendTransaction: (data: SignAndSendTransactionOptions) => Promise<FinalExecutionOutcome>;
   signAndSendTransactions: (data: SignAndSendTransactionsOptions) => Promise<Array<FinalExecutionOutcome>>;
 }

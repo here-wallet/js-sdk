@@ -2,6 +2,7 @@ import { Account, Connection, InMemorySigner, KeyPair } from "near-api-js";
 import { FinalExecutionOutcome, JsonRpcProvider } from "near-api-js/lib/providers";
 import { PublicKey, KeyPairEd25519 } from "near-api-js/lib/utils/key_pair";
 import { sha256 } from "js-sha256";
+import { randomBytes } from "crypto";
 import BN from "bn.js";
 
 import { HereAuthStorage, HereKeyStore } from "./HereKeyStore";
@@ -19,9 +20,13 @@ import {
   SignMessageOptions,
   SignInOptions,
   HereInitializeOptions,
-  HereSignedResult,
   HereStrategy,
+  SignMessageOptionsNEP0413,
+  SignMessageOptionsLegacy,
+  SignMessageLegacyReturn,
+  SignedMessageNEP0413,
 } from "./types";
+import { verifySignature } from "./nep0314";
 
 class AccessDenied extends Error {}
 
@@ -101,7 +106,7 @@ export class HereWallet implements HereWalletProtocol {
         contractId,
       })
       .catch(() => "0");
-    
+
     return new BN(hereCoins);
   }
 
@@ -130,11 +135,7 @@ export class HereWallet implements HereWalletProtocol {
 
   public async signIn({ contractId, allowance, methodNames = [], ...delegate }: SignInOptions = {}): Promise<string> {
     if (contractId == null) {
-      const { accountId } = await this.signMessage({
-        receiver: window.location.host,
-        message: "Sign this message to sign in",
-        ...delegate,
-      });
+      const { accountId } = await this.authenticate(delegate);
 
       // Generate random keypair
       await this.authStorage.setKey(this.networkId, accountId, KeyPairEd25519.fromRandom());
@@ -251,35 +252,83 @@ export class HereWallet implements HereWalletProtocol {
     }
   }
 
-  /** Implement NEP0413 */
-  public async signMessage({ message, receiver, nonce, ...delegate }: SignMessageOptions) {
-    delegate.strategy = delegate.strategy ?? this.defaultStrategy();
-    delegate.provider = delegate.provider ?? this.defaultProvider;
-    delegate.onInitialized?.();
-    delegate.strategy?.onInitialized?.();
+  async verifyMessageNEP0413(request: SignMessageOptionsNEP0413, result: SignedMessageNEP0413) {
+    const isSignatureValid = verifySignature(request, result);
+    if (!isSignatureValid) throw Error("Incorrect signature");
 
+    const account = await this.account(result.accountId);
+    const keys = await account.getAccessKeys();
+    const isFullAccess = keys.some((k) => {
+      if (k.public_key !== result.publicKey) return false;
+      if (k.access_key.permission !== "FullAccess") return false;
+      return true;
+    });
+
+    if (!isFullAccess) throw Error("Signer public key is not full access");
+    return true;
+  }
+
+  async authenticate(options: HereAsyncOptions & Partial<SignMessageOptionsNEP0413> = {}) {
+    const signRequest = {
+      nonce: options.nonce ?? randomBytes(32),
+      recipient: options.recipient ?? window.location.host,
+      message: options.message ?? "Authenticate",
+    };
+
+    const signed = await this.signMessage({ ...signRequest, ...options });
+    await this.verifyMessageNEP0413(signRequest, signed);
+    return signed;
+  }
+
+  public signMessage(options: HereAsyncOptions & SignMessageOptionsNEP0413): Promise<SignedMessageNEP0413>;
+  public signMessage(options: HereAsyncOptions & SignMessageOptionsLegacy): Promise<SignMessageLegacyReturn>;
+  public async signMessage(options: SignMessageOptions): Promise<SignMessageLegacyReturn | SignedMessageNEP0413> {
+    options.strategy = options.strategy ?? this.defaultStrategy();
+    options.provider = options.provider ?? this.defaultProvider;
+    options.onInitialized?.();
+    options.strategy?.onInitialized?.();
+
+    // Legacy format with receiver property, does not correspond to the current version of the standard
+    if ("receiver" in options) return await this.legacySignMessage(options);
+
+    const data = await options.provider({
+      ...options,
+      request: {
+        type: "sign",
+        message: options.message,
+        recipient: options.recipient,
+        nonce: Array.from(options.nonce),
+        network: this.networkId,
+      },
+    });
+
+    if (data?.payload == null) throw Error("Signature not found");
+    const { publicKey, signature, accountId }: SignedMessageNEP0413 = JSON.parse(data.payload);
+    return { publicKey, signature, accountId };
+  }
+
+  async legacySignMessage({
+    message,
+    receiver,
+    nonce,
+    ...delegate
+  }: SignMessageOptionsLegacy & HereAsyncOptions): Promise<SignMessageLegacyReturn> {
     if (nonce == null) {
       let nonceArray: Uint8Array = new Uint8Array(32);
       nonce = [...crypto.getRandomValues(nonceArray)];
     }
 
-    const data = await delegate.provider({
+    const data = await delegate.provider?.({
       ...delegate,
-      request: {
-        type: "sign",
-        message,
-        receiver,
-        nonce,
-        network: this.networkId,
-      },
+      request: { type: "sign", message, receiver, nonce, network: this.networkId },
     });
 
-    if (data.payload == null) {
+    if (data?.payload == null) {
       throw Error("Signature not found");
     }
 
     try {
-      const { publicKey, signature, accountId }: HereSignedResult = JSON.parse(data.payload);
+      const { publicKey, signature, accountId }: SignedMessageNEP0413 = JSON.parse(data.payload);
       const sign = new Uint8Array(Buffer.from(signature, "base64"));
       const json = JSON.stringify({ message, receiver, nonce });
       const msg = new Uint8Array(sha256.digest(`NEP0413:` + json));

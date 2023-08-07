@@ -1,5 +1,5 @@
 import { QRCodeStrategy } from "../src/qrcode-strategy";
-import { HereWallet, WidgetStrategy } from "../src";
+import { HereWallet } from "../src";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,7 +43,9 @@ const instantSignin = async (here: HereWallet) => {
 };
 
 const main = async () => {
-  const here = new HereWallet();
+  const here = new HereWallet({
+    // defaultStrategy: () => new WidgetStrategy("http://localhost:5173/connector/index.html"),
+  });
 
   if (await here.isSignedIn()) {
     uikit.loginState(await here.getAccountId());
@@ -53,8 +55,12 @@ const main = async () => {
   }
 
   uikit.verifyBtn.onclick = async () => {
-    const { accountId } = await here.signMessage({ receiver: "HERE Example", message: "auth" });
-    alert("Signed by " + accountId);
+    try {
+      const signed = await here.authenticate();
+      alert("Signed by " + signed.accountId);
+    } catch (e) {
+      alert(e);
+    }
   };
 
   uikit.connectBtn.onclick = async () => {
