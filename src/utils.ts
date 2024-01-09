@@ -71,7 +71,8 @@ export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
   const result: HereProviderResult = {
     payload: error instanceof Error ? error.message : "UNKNOWN",
     status: HereProviderStatus.FAILED,
-    account_id: "",
+    type: delegate.selector?.type || "local",
+    account_id: delegate.selector?.id || "",
   };
 
   delegate.onFailed?.(result);
@@ -111,4 +112,3 @@ export const isValidAccessKey = (accountId: string, accessKey: AccessKeyInfoView
 
   return false;
 };
-

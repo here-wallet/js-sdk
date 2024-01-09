@@ -13,6 +13,7 @@ export interface HereAsyncOptions extends HereStrategy {
   provider?: HereProvider;
   signal?: AbortSignal;
   strategy?: HereStrategy;
+  selector?: { type: string; id?: string };
 }
 
 export interface SignInOptions extends HereAsyncOptions {

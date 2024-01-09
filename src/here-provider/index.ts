@@ -47,7 +47,11 @@ export const proxyProvider: HereProvider = async (conf) => {
     };
 
     const rejectAction = (payload?: string) => {
-      processApprove({ status: HereProviderStatus.FAILED, payload });
+      processApprove({
+        type: request.selector?.type || "local",
+        status: HereProviderStatus.FAILED,
+        payload,
+      });
     };
 
     delegate.onRequested?.(id!, request, rejectAction);
@@ -72,8 +76,8 @@ export const proxyProvider: HereProvider = async (conf) => {
 
           clear();
           reject(new HereProviderError(payload, error));
-          delegate.onFailed?.({ status, payload });
-          strategy?.onFailed?.({ status, payload });
+          delegate.onFailed?.({ type: request.selector?.type || "local", status, payload });
+          strategy?.onFailed?.({ type: request.selector?.type || "local", status, payload });
         }
       }, 3000);
     };

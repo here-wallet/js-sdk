@@ -21,21 +21,15 @@ export class AuthPayload implements SignMessageOptionsNEP0413 {
   }
 }
 
-export const authPayloadSchema = new Map([
-  [
-    AuthPayload,
-    {
-      kind: "struct",
-      fields: [
-        ["tag", "u32"],
-        ["message", "string"],
-        ["nonce", [32]],
-        ["recipient", "string"],
-        ["callbackUrl", { kind: "option", type: "string" }],
-      ],
-    },
-  ],
-]);
+export const authPayloadSchema: borsh.Schema = {
+  struct: {
+    tag: "u32",
+    message: "string",
+    nonce: { array: { type: "u8", len: 32 } },
+    recipient: "string",
+    callbackUrl: { option: "string" },
+  },
+};
 
 export function verifySignature(request: SignMessageOptionsNEP0413, result: SignedMessageNEP0413) {
   // Reconstruct the payload that was **actually signed**

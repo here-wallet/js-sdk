@@ -18,7 +18,7 @@ export const getRequest = async (id: string, signal?: AbortSignal): Promise<Here
   }
 
   const { data } = await res.json();
-  return JSON.parse(base_decode(data).toString("utf8"));
+  return JSON.parse(Buffer.from(base_decode(data)).toString("utf8"));
 };
 
 export const getResponse = async (id: string): Promise<HereProviderResult> => {
@@ -34,6 +34,8 @@ export const getResponse = async (id: string): Promise<HereProviderResult> => {
   const { data } = await res.json();
   const result: HereProviderResult = JSON.parse(data) ?? {};
   return {
+    type: result.type ?? "here",
+    public_key: result.public_key ?? "",
     account_id: result.account_id ?? "",
     payload: result.payload ?? "",
     status: result.status ?? -1,
