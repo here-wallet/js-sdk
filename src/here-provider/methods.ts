@@ -33,14 +33,7 @@ export const getResponse = async (id: string): Promise<HereProviderResult> => {
 
   const { data } = await res.json();
   const result: HereProviderResult = JSON.parse(data) ?? {};
-  return {
-    type: result.type ?? "here",
-    public_key: result.public_key ?? "",
-    account_id: result.account_id ?? "",
-    payload: result.payload ?? "",
-    status: result.status ?? -1,
-    topic: result.topic,
-  };
+  return Object.assign({ type: "here", public_key: "", account_id: "", payload: "", status: -1, path: "" }, result);
 };
 
 export const deleteRequest = async (id: string) => {
