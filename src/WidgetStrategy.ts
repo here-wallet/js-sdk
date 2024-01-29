@@ -4,6 +4,7 @@ import { HereStrategy } from "./types";
 const createIframe = (widget: string) => {
   const connector = document.createElement("iframe");
   connector.src = widget;
+  connector.allow = "usb";
   connector.style.border = "none";
   connector.style.zIndex = "10000";
   connector.style.position = "fixed";
