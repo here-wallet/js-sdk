@@ -1,10 +1,57 @@
+import uuid4 from "uuid4";
+import { KeyPair } from "near-api-js";
+
 import { isMobile } from "../utils";
 import { HereProvider, HereProviderError, HereProviderResult, HereProviderStatus } from "../provider";
 import { createRequest, getResponse, deleteRequest, proxyApi, getRequest } from "./methods";
 
 export { createRequest, getResponse, deleteRequest, proxyApi, getRequest };
 
+export const waitInjectedHereWallet = new Promise<{ accountId: string; publicKey: string } | null>((resolve) => {
+  if (window.parent == null) return resolve(null);
+
+  const handler = (e: any) => {
+    if (e.data.type !== "here-wallet-injected") return;
+    localStorage.setItem("near-wallet-selector:recentlySignedInWallets", '["here-wallet"]');
+    localStorage.setItem("near-wallet-selector:selectedWalletId", '"here-wallet"');
+    localStorage.setItem(
+      "herewallet:keystore",
+      JSON.stringify({
+        mainnet: {
+          activeAccount: e.data.accountId,
+          accounts: { [e.data.accountId]: KeyPair.fromString(e.data.publicKey).toString() },
+        },
+      })
+    );
+
+    window.parent.postMessage("here-sdk-init", "*");
+    window.removeEventListener("message", handler);
+    resolve({ accountId: e.data.accountId, publicKey: e.data.publicKey });
+  };
+
+  window.addEventListener("message", handler);
+  setTimeout(() => resolve(null), 2000);
+});
+
 export const proxyProvider: HereProvider = async (conf) => {
+  const isInjected = await waitInjectedHereWallet;
+
+  if (isInjected) {
+    return new Promise((resolve) => {
+      const id = uuid4();
+      const handler = (e: any) => {
+        if (e.data.id !== id) return;
+        if (e.data.status === HereProviderStatus.SUCCESS || e.data.status === HereProviderStatus.FAILED) {
+          window.removeEventListener("message", handler);
+          return resolve(e.data);
+        }
+      };
+
+      window.parent.postMessage({ $here: true, ...conf.request, id }, "*");
+      window.addEventListener("message", handler);
+    });
+  }
+
   let { strategy, request, disableCleanupRequest, id, signal, ...delegate } = conf;
   if (id != null) request = await getRequest(id, signal);
   else id = await createRequest(request, signal);

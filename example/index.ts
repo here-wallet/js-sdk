@@ -43,9 +43,7 @@ const instantSignin = async (here: HereWallet) => {
 };
 
 const main = async () => {
-  const here = new HereWallet({
-    // defaultStrategy: () => new WidgetStrategy("http://localhost:5173/connector/index.html"),
-  });
+  const here = new HereWallet();
 
   if (await here.isSignedIn()) {
     uikit.loginState(await here.getAccountId());
