@@ -1,7 +1,6 @@
 import { KeyStore } from "near-api-js/lib/key_stores";
 import { KeyPair } from "near-api-js/lib/utils/key_pair";
 import { HereJsonStorage, StateStorage } from "./JSONStorage";
-import { waitInjectedHereWallet } from "./here-provider";
 
 export interface HereAuthStorage extends KeyStore {
   setActiveAccount(network: string, id: string): Promise<void>;
@@ -29,9 +28,6 @@ export class HereKeyStore implements HereAuthStorage {
   }
 
   async getActiveAccount(network: string) {
-    const injected = await waitInjectedHereWallet;
-    if (injected) return injected.accountId;
-
     const state = await this.storage.getState(network);
     return state.activeAccount;
   }
