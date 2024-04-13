@@ -19,6 +19,7 @@
         justify-content: center;
         height: 100vh;
         box-sizing: border-box;
+        background-color: #fff;
         gap: 24px;
       }
 
@@ -68,18 +69,18 @@
   </head>
 
   <body>
-    <h1>Transaction success</h1>
+    <h1>Transaction<br />success</h1>
     <button class="here-button" id="explorer">Open explorer</button>
     <button class="here-button" id="back">Back</button>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script>
-      window.Telegram?.WebView?.ready?.();
+      window.Telegram?.WebApp?.ready?.();
       const hash = new URL(location.href).searchParams.get("payload");
 
       document.querySelector("#explorer").addEventListener("click", () => {
-        window.Telegram?.WebView.openLink(`https://pikespeak.ai/transaction-viewer/${hash}`);
+        window.Telegram?.WebApp?.openLink?.(`https://pikespeak.ai/transaction-viewer/${hash}`);
       });
 
       document.querySelector("#back").addEventListener("click", () => {
