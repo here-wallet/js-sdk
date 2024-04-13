@@ -1,5 +1,5 @@
-import { HereProviderRequest, HereProviderResult } from "./provider";
-import { HereStrategy } from "./types";
+import { HereProviderRequest, HereProviderResult, HereWalletProtocol } from "../types";
+import { HereStrategy } from "./HereStrategy";
 
 const createIframe = (widget: string) => {
   const connector = document.createElement("iframe");
@@ -19,7 +19,7 @@ const createIframe = (widget: string) => {
 
 export const defaultUrl = "https://my.herewallet.app/connector/index.html";
 
-export class WidgetStrategy implements HereStrategy {
+export class WidgetStrategy extends HereStrategy {
   private static connector?: HTMLIFrameElement;
   private static isLoaded = false;
 
@@ -27,6 +27,8 @@ export class WidgetStrategy implements HereStrategy {
   readonly options: { lazy: boolean; widget: string };
 
   constructor(options: string | { lazy?: boolean; widget?: string } = { widget: defaultUrl, lazy: false }) {
+    super();
+
     this.options = {
       lazy: typeof options === "object" ? options.lazy || false : false,
       widget: typeof options === "string" ? options : options.widget || defaultUrl,
@@ -48,7 +50,7 @@ export class WidgetStrategy implements HereStrategy {
     return WidgetStrategy.connector;
   }
 
-  onRequested(id: string, request: HereProviderRequest, reject: (p?: string) => void) {
+  async onRequested(id: string, request: HereProviderRequest, reject: (p?: string) => void) {
     const iframe = this.initIframe();
     iframe.style.display = "block";
 
@@ -80,17 +82,17 @@ export class WidgetStrategy implements HereStrategy {
     iframe.contentWindow?.postMessage(args, origin);
   }
 
-  onApproving() {
+  async onApproving() {
     this.postMessage({ type: "approving" });
   }
 
-  onSuccess(request: HereProviderResult) {
+  async onSuccess(request: HereProviderResult) {
     console.log(request);
     this.postMessage({ type: "result", payload: { request } });
     this.close();
   }
 
-  onFailed(request: HereProviderResult) {
+  async onFailed(request: HereProviderResult) {
     this.postMessage({ type: "result", payload: { request } });
     this.close();
   }

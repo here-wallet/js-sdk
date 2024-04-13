@@ -1,12 +1,12 @@
 export { HereWallet } from "./wallet";
 
-export * from "./actions";
-export * from "./HereKeyStore";
-export * from "./JSONStorage";
-export * from "./actions/types";
-export * from "./WidgetStrategy";
-export * from "./WindowStrategy";
-export * from "./provider";
+export * from "./helpers/actions";
+export * from "./storage/HereKeyStore";
+export * from "./storage/JSONStorage";
+export * from "./helpers/types";
+export * from "./strategies/WidgetStrategy";
+export * from "./strategies/WindowStrategy";
+export * from "./strategies/HereStrategy";
+export * from "./strategies/HereStrategy";
+export * from "./helpers/utils";
 export * from "./types";
-export * from "./utils";
-export * from "./here-provider";

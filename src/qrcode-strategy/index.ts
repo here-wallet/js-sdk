@@ -1,5 +1,5 @@
-import { HereStrategy } from "../types";
-import { HereProviderRequest } from "../provider";
+import { HereProviderRequest, HereProviderResult, HereWalletProtocol } from "../types";
+import { HereStrategy } from "../strategies/HereStrategy";
 import QRCode, { QRSettings } from "./qrcode";
 import logo from "./logo";
 
@@ -12,11 +12,12 @@ export interface QRCodeStrategyOptions extends Partial<QRSettings> {
   endpoint?: string;
 }
 
-export class QRCodeStrategy implements HereStrategy {
+export class QRCodeStrategy extends HereStrategy {
   private qrcode?: QRCode;
   readonly endpoint: string;
 
   constructor(public options: QRCodeStrategyOptions) {
+    super();
     this.endpoint = options.endpoint ?? "https://my.herewallet.app/request";
   }
 
@@ -24,7 +25,7 @@ export class QRCodeStrategy implements HereStrategy {
     return this.options.theme === "light" ? lightQR : darkQR;
   }
 
-  onRequested(id: string, request: HereProviderRequest) {
+  async onRequested(id: string, request: HereProviderRequest) {
     this.qrcode = new QRCode({
       ...this.themeConfig,
       ...this.options,
@@ -41,8 +42,15 @@ export class QRCodeStrategy implements HereStrategy {
     this.qrcode?.stopAnimate();
   }
 
-  onFailed = () => this.close();
-  onSuccess = () => this.close();
+  async onApproving(result: HereProviderResult) {}
+
+  async onFailed(result: HereProviderResult) {
+    this.close();
+  }
+
+  async onSuccess(result: HereProviderResult) {
+    this.close();
+  }
 }
 
 export const darkQR: QRSettings = {

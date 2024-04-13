@@ -1,6 +1,6 @@
 {
   "name": "@here-wallet/core",
-  "version": "1.6.6",
+  "version": "2.0.0",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -22,10 +22,12 @@
     "url": "git+ssh://git@github.com/here-wallet/near-selector.git"
   },
   "scripts": {
-    "example": "parcel example/index.html --open",
+    "example": "parcel example/index.html example/success.html --open",
+    "build:example": "parcel build example/success.html example/index.html",
     "build": "tsc"
   },
   "dependencies": {
+    "js-sha256": "^0.11.0",
     "near-api-js": "^3.0.1",
     "sha1": "^1.1.1",
     "uuid4": "2.0.3"

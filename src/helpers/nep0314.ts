@@ -1,7 +1,7 @@
 import * as borsh from "borsh";
 import js_sha256 from "js-sha256";
 import { PublicKey } from "near-api-js/lib/utils";
-import { SignedMessageNEP0413, SignMessageOptionsNEP0413 } from "./types";
+import { SignedMessageNEP0413, SignMessageOptionsNEP0413 } from "../types";
 
 export class AuthPayload implements SignMessageOptionsNEP0413 {
   readonly message: string;

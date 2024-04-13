@@ -68,17 +68,23 @@
   </head>
 
   <body>
-    <h1 id="account-id"></h1>
-    <div id="qrcode"></div>
-    <button class="here-button" id="connect"></button>
-    <button class="here-button" id="verify-connect">Sign message</button>
-    <button class="here-button" id="function-call">Function call</button>
+    <h1>Transaction success</h1>
+    <button class="here-button" id="explorer">Open explorer</button>
+    <button class="here-button" id="back">Back</button>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <script>
       window.Telegram?.WebView?.ready?.();
-    </script>
+      const hash = new URL(location.href).searchParams.get("payload");
 
-    <script module src="./index.ts"></script>
+      document.querySelector("#explorer").addEventListener("click", () => {
+        window.Telegram?.WebView.openLink(`https://pikespeak.ai/transaction-viewer/${hash}`);
+      });
+
+      document.querySelector("#back").addEventListener("click", () => {
+        location.assign("/");
+      });
+    </script>
   </body>
 </html>

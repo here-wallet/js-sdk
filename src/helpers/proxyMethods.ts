@@ -1,8 +1,9 @@
 import sha1 from "sha1";
 import uuid4 from "uuid4";
 import { base_decode, base_encode } from "near-api-js/lib/utils/serialize";
-import { HereProviderRequest, HereProviderResult } from "../provider";
-import { getDeviceId } from "../utils";
+
+import { HereProviderRequest, HereProviderResult } from "../types";
+import { getDeviceId } from "./utils";
 
 export const proxyApi = "https://h4n.app";
 
@@ -47,27 +48,26 @@ export const deleteRequest = async (id: string) => {
   }
 };
 
-export const createRequest = async (request: HereProviderRequest, signal?: AbortSignal) => {
+export const computeRequestId = async (request: HereProviderRequest) => {
   const query = base_encode(JSON.stringify({ ...request, _id: uuid4() }));
   const hashsum = sha1(query);
   const id = Buffer.from(hashsum, "hex").toString("base64");
-  const urlsafe = id.replaceAll("/", "_").replaceAll("-", "+").slice(0, 13);
+  const requestId = id.replaceAll("/", "_").replaceAll("-", "+").slice(0, 13);
+  return { requestId, query };
+};
 
-  const res = await fetch(`${proxyApi}/${urlsafe}/request`, {
+export const createRequest = async (request: HereProviderRequest, signal?: AbortSignal) => {
+  const { query, requestId } = await computeRequestId(request);
+  const res = await fetch(`${proxyApi}/${requestId}/request`, {
     method: "POST",
+    body: JSON.stringify({ topic_id: getDeviceId(), data: query }),
+    headers: { "content-type": "application/json" },
     signal,
-    body: JSON.stringify({
-      topic_id: getDeviceId(),
-      data: query,
-    }),
-    headers: {
-      "content-type": "application/json",
-    },
   });
 
   if (res.ok === false) {
     throw Error(await res.text());
   }
 
-  return urlsafe;
+  return requestId;
 };

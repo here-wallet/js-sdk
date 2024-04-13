@@ -1,8 +1,8 @@
 import uuid4 from "uuid4";
 import { AccessKeyInfoView } from "near-api-js/lib/providers/provider";
-import { HereProviderError, HereProviderResult, HereProviderStatus } from "./provider";
-import { HereAsyncOptions, HereCall } from "./types";
-import { Action } from "./actions/types";
+import { HereProviderError, HereAsyncOptions, HereCall, HereProviderResult, HereProviderStatus, SelectorType } from "../types";
+import { Action } from "./types";
+import { HereStrategy } from "../strategies/HereStrategy";
 
 export const getDeviceId = () => {
   const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
@@ -34,10 +34,7 @@ export const serializeActions = (actions: Action[]) => {
   });
 };
 
-export const getPublicKeys = async (
-  rpc: string,
-  accountId: string
-): Promise<Array<{ public_key: string; access_key: { permission: string } }>> => {
+export const getPublicKeys = async (rpc: string, accountId: string): Promise<Array<{ public_key: string; access_key: { permission: string } }>> => {
   const res = await fetch(rpc, {
     method: "POST",
     body: JSON.stringify({
@@ -63,7 +60,7 @@ export const getPublicKeys = async (
   return data.result.keys;
 };
 
-export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
+export const internalThrow = (error: unknown, strategy: HereStrategy, selector?: SelectorType) => {
   if (error instanceof HereProviderError) {
     throw error;
   }
@@ -71,12 +68,11 @@ export const internalThrow = (error: unknown, delegate: HereAsyncOptions) => {
   const result: HereProviderResult = {
     payload: error instanceof Error ? error.message : "UNKNOWN",
     status: HereProviderStatus.FAILED,
-    type: delegate.selector?.type || "local",
-    account_id: delegate.selector?.id || "",
+    type: selector?.type || "web",
+    account_id: selector?.id || "",
   };
 
-  delegate.onFailed?.(result);
-  delegate?.strategy?.onFailed?.(result);
+  strategy.onFailed(result);
   throw error;
 };
 

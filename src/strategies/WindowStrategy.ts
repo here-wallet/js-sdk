@@ -1,26 +1,24 @@
-import { HereProviderRequest } from "./provider";
-import { HereStrategy } from "./types";
+import { HereProviderRequest, HereWalletProtocol } from "../types";
+import { HereStrategy } from "./HereStrategy";
 
-export class WindowStrategy implements HereStrategy {
-  constructor(readonly endpoint = "https://my.herewallet.app") {}
+export class WindowStrategy extends HereStrategy {
+  constructor(readonly endpoint = "https://my.herewallet.app") {
+    super();
+  }
 
   signWindow: Window | null = null;
   unloadHandler?: () => void;
   timerHandler?: NodeJS.Timeout;
 
-  onInitialized() {
+  async onInitialized() {
     if (this.signWindow) return;
 
     const left = window.innerWidth / 2 - 420 / 2;
     const top = window.innerHeight / 2 - 700 / 2;
-    this.signWindow = window.open(
-      `${this.endpoint}/loading`,
-      "_blank",
-      `popup=1,width=420,height=700,top=${top},left=${left}`
-    );
+    this.signWindow = window.open(`${this.endpoint}/loading`, "_blank", `popup=1,width=420,height=700,top=${top},left=${left}`);
   }
 
-  onRequested(id: string, request: HereProviderRequest, reject: (p?: string) => void) {
+  async onRequested(id: string, request: HereProviderRequest, reject: (p?: string) => void) {
     if (this.signWindow == null) return;
 
     this.unloadHandler = () => this.signWindow?.close();
@@ -42,6 +40,11 @@ export class WindowStrategy implements HereStrategy {
     }
   }
 
-  onFailed = () => this.close();
-  onSuccess = () => this.close();
+  async onFailed() {
+    this.close();
+  }
+
+  async onSuccess() {
+    this.close();
+  }
 }

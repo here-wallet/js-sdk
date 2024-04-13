@@ -1,5 +1,5 @@
 import { QRCodeStrategy } from "../src/qrcode-strategy";
-import { HereWallet } from "../src";
+import { HereProviderResult, HereWallet } from "../src";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -27,23 +27,38 @@ const uikit = {
 };
 
 // Instant wallet signin HERE!
-const instantSignin = async (here: HereWallet) => {
-  const account = await here.signIn({
-    contractId: "social.near",
-    strategy: new QRCodeStrategy({ element: uikit.qrcode }), // override new window
-    onApproving: (r) => console.log("onApproving", r),
-    onSuccess: (r) => console.log("onSuccess", r),
-    onFailed: async (r) => {
+const instantSignin = async (here) => {
+  class MyQrCodeStrategy extends QRCodeStrategy {
+    async onApproving(r) {
+      console.log("onApproving", r);
+    }
+
+    async onSuccess(r) {
+      await super.onSuccess(r);
+      console.log("onSuccess", r);
+    }
+
+    async onFailed(r) {
+      await super.onFailed(r);
       console.log("onFailed");
       await delay(3000);
-      await instantSignin(here);
-    },
+      await instantSignin(this.wallet);
+    }
+  }
+
+  const account = await here.signIn({
+    strategy: new MyQrCodeStrategy({ element: uikit.qrcode }),
+    contractId: "social.near",
   });
+
   uikit.loginState(account);
 };
 
 const main = async () => {
-  const here = new HereWallet();
+  const here = await HereWallet.connect({
+    botId: "HOTExampleConnectBot/app",
+    walletId: "herewalletbot/beta",
+  });
 
   if (await here.isSignedIn()) {
     uikit.loginState(await here.getAccountId());
@@ -53,12 +68,8 @@ const main = async () => {
   }
 
   uikit.verifyBtn.onclick = async () => {
-    try {
-      const signed = await here.authenticate();
-      alert("Signed by " + signed.accountId);
-    } catch (e) {
-      alert(e);
-    }
+    const signed = await here.authenticate();
+    alert("Signed by " + signed.accountId);
   };
 
   uikit.connectBtn.onclick = async () => {
@@ -76,6 +87,7 @@ const main = async () => {
   uikit.fnCallBtn?.addEventListener("click", async () => {
     const account = await here.getAccountId();
     const result = await here.signAndSendTransactions({
+      callbackUrl: "/success",
       transactions: [
         {
           receiverId: "social.near",
@@ -85,20 +97,6 @@ const main = async () => {
               params: {
                 methodName: "set",
                 args: { data: { [account]: { profile: { hereUser: "yes" } } } },
-                gas: "30000000000000",
-                deposit: "1",
-              },
-            },
-          ],
-        },
-        {
-          receiverId: "usn",
-          actions: [
-            {
-              type: "FunctionCall",
-              params: {
-                methodName: "transfer",
-                args: { amount: "10000000000000" },
                 gas: "30000000000000",
                 deposit: "1",
               },

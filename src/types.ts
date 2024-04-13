@@ -1,19 +1,94 @@
 import BN from "bn.js";
-import { Account } from "near-api-js";
+import { Account, Connection } from "near-api-js";
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
-import { PublicKey } from "near-api-js/lib/utils";
+import { KeyPair, PublicKey } from "near-api-js/lib/utils";
 
-import { HereProvider, HereProviderRequest, HereProviderResult } from "./provider";
-import { Base64, Optional, Transaction } from "./actions/types";
-import { HereAuthStorage } from "./HereKeyStore";
+import { Base64, Optional, Transaction } from "./helpers/types";
+import { HereAuthStorage } from "./storage/HereKeyStore";
+import { HereStrategy } from "./strategies/HereStrategy";
+
+declare global {
+  var Telegram: { WebApp?: any } | undefined;
+}
+
+export type SelectorType = { id?: string; type?: string };
+export type HereProviderSign =
+  | ({
+      network?: string;
+      type: "sign";
+      selector?: SelectorType;
+      callbackUrl?: string;
+      telegramApp?: string;
+    } & SignMessageOptionsLegacy)
+  | {
+      network?: string;
+      type: "sign";
+      nonce: number[];
+      message: string;
+      recipient: string;
+      selector: SelectorType;
+      callbackUrl?: string;
+      telegramApp?: string;
+    };
+
+export type HereProviderCall = {
+  network?: string;
+  transactions: HereCall[];
+  type: "call";
+  selector: SelectorType;
+  callbackUrl?: string;
+  telegramApp?: string;
+};
+
+export type HereProviderImport = {
+  type: "import";
+  keystore: string;
+  network?: string;
+  selector: SelectorType;
+  callbackUrl?: string;
+  telegramApp?: string;
+};
+
+export type HereProviderKeypom = {
+  type: "keypom";
+  contract: string;
+  secret: string;
+  selector: SelectorType;
+  callbackUrl?: string;
+  telegramApp?: string;
+};
+
+export type HereProviderRequest = HereProviderCall | HereProviderSign | HereProviderImport | HereProviderKeypom;
+
+export enum HereProviderStatus {
+  APPROVING = 1,
+  FAILED = 2,
+  SUCCESS = 3,
+}
+
+export interface HereProviderResult {
+  type: string;
+  path?: string;
+  public_key?: string;
+  account_id?: string;
+  payload?: string;
+  topic?: string;
+  status: HereProviderStatus;
+}
+
+export class HereProviderError extends Error {
+  constructor(readonly payload?: string, readonly parentError?: Error) {
+    super(payload ?? parentError?.message);
+  }
+}
 
 export type HereCall = Optional<Transaction, "signerId">;
 
-export interface HereAsyncOptions extends HereStrategy {
-  provider?: HereProvider;
+export interface HereAsyncOptions {
   signal?: AbortSignal;
   strategy?: HereStrategy;
   selector?: { type: string; id?: string };
+  callbackUrl?: string;
 }
 
 export interface SignInOptions extends HereAsyncOptions {
@@ -37,9 +112,7 @@ export type SignMessageOptionsNEP0413 = {
   callbackUrl?: string; // Optional, applicable to browser wallets (e.g. MyNearWallet). The URL to call after the signing process. Defaults to `window.location.href`.
 };
 
-export type SignMessageOptions =
-  | (HereAsyncOptions & SignMessageOptionsNEP0413)
-  | (HereAsyncOptions & SignMessageOptionsLegacy);
+export type SignMessageOptions = (HereAsyncOptions & SignMessageOptionsNEP0413) | (HereAsyncOptions & SignMessageOptionsLegacy);
 
 export type SignMessageLegacyReturn = {
   signature: Uint8Array;
@@ -64,20 +137,26 @@ export interface HereInitializeOptions {
   nodeUrl?: string;
   networkId?: "mainnet" | "testnet";
   authStorage?: HereAuthStorage;
-  defaultStrategy?: () => HereStrategy;
-  defaultProvider?: HereProvider;
+  botId?: string;
+  walletId?: string;
+  defaultStrategy?: HereStrategy;
 }
 
-export interface HereStrategy {
-  onInitialized?: () => void;
-  onRequested?: (id: string, request: HereProviderRequest, reject: (p?: string) => void) => void;
-  onApproving?: (result: HereProviderResult) => void;
-  onSuccess?: (result: HereProviderResult) => void;
-  onFailed?: (result: HereProviderResult) => void;
+export interface HereStrategyRequest {
+  id?: string;
+  request: HereProviderRequest;
+  disableCleanupRequest?: boolean;
+  signal?: AbortSignal;
+  accessKey?: KeyPair;
+  callbackUrl?: string;
 }
 
 export interface HereWalletProtocol {
-  networkId: string;
+  readonly networkId: string;
+  readonly connection: Connection;
+  readonly authStorage: HereAuthStorage;
+  readonly strategy: HereStrategy;
+
   account(id?: string): Promise<Account>;
   getAccounts(): Promise<string[]>;
   switchAccount(id: string): Promise<void>;

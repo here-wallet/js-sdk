@@ -11,7 +11,7 @@ npm i @here-wallet/core --save
 
 ```ts
 import { HereWallet } from "@here-wallet/core";
-const here = new HereWallet()
+const here = await HereWallet.connect();
 const account = await here.signIn({ contractId: "social.near" });
 console.log(`Hello ${account}!`);
 ```
@@ -26,6 +26,69 @@ If a user has logged into your application from a phone and has a wallet install
 
 All this time while user signing the transaction, a background process in your application will monitor the status of the transaction requested for signing.
 
+## Sign in is optional!
+
+You can generate a signing transaction without knowing your user's accountId (without calling signIn).
+There are cases when you do not need to receive a public key from the user to call your contract, but you want to ask the user to perform an action in your application once:
+
+```ts
+import { HereWallet } from "@here-wallet/core";
+const here = await HereWallet.connect();
+const tx = await here.signAndSendTransaction({
+  actions: [{ type: "FunctionCall", params: { deposit: 1000 } }],
+  receiverId: "donate.near",
+});
+
+console.log("Thanks for the donation!");
+```
+
+## Build Telegram App and connect HOT Telegram Wallet
+
+```ts
+import { HereWallet } from "@here-wallet/core";
+const here = await HereWallet.connect({
+  botId: "HOTExampleConnectBot/app", // Your bot MiniApp
+  walletId: "herewalletbot/app", // HOT Wallet
+});
+```
+
+## Login without AddKey
+
+In order to use the wallet for authorization on the backend, you need to use the signMessage method.
+This method signs your message with a private full access key inside the wallet. You can also use this just to securely get your user's accountId without any extra transactions.
+
+```ts
+import { HereWallet } from "@here-wallet/core";
+const here = await HereWallet.connect();
+
+const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)));
+const recipient = window.location.host;
+const message = "Authenticate message";
+
+const { signature, publicKey, accountId } = await here.signMessage({ recipient, nonce, message });
+
+// Verify on you backend side, check NEP0413
+const accessToken = await axios.post(yourAPI, { signature, accountId, publicKey, nonce, message, recipient });
+console.log("Auth completed!");
+```
+
+Or you can verify signMessage on client side, just call:
+
+```ts
+try {
+  const { accountId } = await here.authenticate();
+  console.log(`Hello ${accountId}!`);
+} catch (e) {
+  console.log(e);
+}
+```
+
+If you use js-sdk on your backend, then you do not need to additionally check the signature and key, the library does this, and if the signature is invalid or the key is not a full access key, then the method returns an error.
+Otherwise, on the backend, you need to verify the signature and message with this public key. And also check that this public key is the full access key for this accountId.
+
+**It's important to understand** that the returned message is not the same as the message you submitted for signature.
+This message conforms to the standard: https://github.com/near/NEPs/pull/413
+
 ## Instant Wallet with AppClip
 
 If your goal is to provide the user with a convenient way to log in to your desktop app, you can use Here Instant Wallet, which allows users without a wallet to instantly create one via appclip.
@@ -39,104 +102,23 @@ This is how you can create a long-lived transaction signature request and render
 import { HereStrategy, HereWallet } from "@here-wallet/core";
 import { QRCodeStrategy } from "@here-wallet/core/qrcode-strategy";
 
-const putQrcode = document.getElementById("qr-container")
+const putQrcode = document.getElementById("qr-container");
 
 // Instant wallet signin HERE!
-const here = new HereWallet()
+const here = await HereWallet.connect();
 await here.signIn({
   contractId: "social.near",
-
-  // override new window
-  strategy: new QRCodeStrategy({ 
-    element: putQrcode, 
-    theme: 'dark', 
-    size: 128 
+  // override default connect strategy
+  strategy: new QRCodeStrategy({
+    element: putQrcode,
+    theme: "dark",
+    size: 128,
   }),
 });
 ```
 
 You can also look at an example in this repository /example/index.ts or in sandbox:
 https://codesandbox.io/s/here-wallet-instant-app-6msgmn
-
-## Sign in is optional!
-
-You can generate a signing transaction without knowing your user's accountId (without calling signIn).
-There are cases when you do not need to receive a public key from the user to call your contract, but you want to ask the user to perform an action in your application once:
-
-```ts
-import { HereWallet } from "@here-wallet/core";
-const here = new HereWallet()
-const tx = await here.signAndSendTransaction({
-  receiverId: "donate.near",
-  actions: [{ type: "FunctionCall", params: { deposit: 1000 }}]
-});
-
-console.log("Thanks for the donation!")
-```
-
-## Login without AddKey
-In order to use the wallet for authorization on the backend, you need to use the signMessage method.
-This method signs your message with a private full access key inside the wallet. You can also use this just to securely get your user's accountId without any extra transactions.
-
-```ts
-import { HereWallet } from "@here-wallet/core";
-const here = new HereWallet()
-
-const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-const recipient = window.location.host;
-const message = "Authenticate message"
-
-const { signature, publicKey, accountId } = await here.signMessage({ recipient, nonce, message });
-
-// Verify on you backend side, check NEP0413
-const accessToken = await axios.post(yourAPI, { signature, accountId, publicKey, nonce, message, recipient });
-console.log("Auth completed!")
-```
-
-Or you can verify signMessage on client side, just call:
-```ts
-try {
-  const { accountId } = await here.authenticate()
-  console.log(`Hello ${accountId}!`)
-} catch(e) {
-  console.log(e)
-}
-
-```
-
-If you use js-sdk on your backend, then you do not need to additionally check the signature and key, the library does this, and if the signature is invalid or the key is not a full access key, then the method returns an error.
-Otherwise, on the backend, you need to verify the signature and message with this public key. And also check that this public key is the full access key for this accountId.
-
-**It's important to understand** that the returned message is not the same as the message you submitted for signature.
-This message conforms to the standard: https://github.com/near/NEPs/pull/413
-
-## Strategy and Events
-
-All methods for interact with wallet have additional parameters:
-
-```ts
-export interface HereOptions {
-  // DefaultStrategy by default called new window popup, you can override it
-  strategy?: Strategy;
-  signal?: AbortSignal;
-
-  // Just Events, called before strategy,
-  // use this if you don't need to change strategy
-  onInitialized?: () => void;
-  onRequested?: (request: HereProviderRequest) => void;
-  onApproving?: (result: HereProviderResult) => void;
-  onSuccess?: (result: HereProviderResult) => void;
-  onFailed?: (result: HereProviderResult) => void;
-}
-```
-
-You can also set the default strategy for `setupHereWallet`:
-
-```ts
-import { HereStrategy, HereWallet } from "@here-wallet/core";
-class CustomStrategy implements HereStrategy {}
-new HereWallet({ defaultStrategy: () => new CustomStrategy() });
-```
 
 ## Security
 

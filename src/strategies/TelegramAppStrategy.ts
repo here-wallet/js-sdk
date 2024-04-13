@@ -1,0 +1,83 @@
+import { KeyPair, KeyPairEd25519 } from "near-api-js/lib/utils";
+import { HereProviderStatus, HereStrategyRequest, HereWalletProtocol } from "../types";
+import { computeRequestId, createRequest, proxyApi } from "../helpers/proxyMethods";
+import { HereStrategy, getResponse } from "./HereStrategy";
+import { getDeviceId } from "../helpers/utils";
+import { base_decode, base_encode } from "near-api-js/lib/utils/serialize";
+
+export class TelegramAppStrategy extends HereStrategy {
+  constructor(public appId = "herewalletbot/app", public walletId = "herewalletbot/app") {
+    super();
+  }
+
+  async connect(wallet: HereWalletProtocol): Promise<void> {
+    this.wallet = wallet;
+    const startapp = window.Telegram?.WebApp?.initDataUnsafe?.start_param || "";
+    window.Telegram?.WebApp.ready?.();
+
+    if (startapp.startsWith("hot")) {
+      let requestId = startapp.split("-").pop() || "";
+      requestId = Buffer.from(base_decode(requestId)).toString("utf8");
+      const data: any = await getResponse(requestId);
+
+      if (data.status !== HereProviderStatus.SUCCESS) {
+        localStorage.removeItem(`__telegramPendings:${requestId}`);
+        return;
+      }
+
+      if (data.type === "sign") {
+        await this.wallet.authStorage.setKey("mainnet", data.account_id!, KeyPairEd25519.fromRandom());
+        await this.wallet.authStorage.setActiveAccount("mainnet", data.account_id!);
+      }
+
+      try {
+        const pending = JSON.parse(localStorage.getItem(`__telegramPendings:${requestId}`) || "");
+        localStorage.removeItem(`__telegramPendings:${requestId}`);
+
+        if (pending.privateKey) {
+          await this.wallet.authStorage.setKey("mainnet", data.account_id!, KeyPair.fromString(pending.privateKey));
+          await this.wallet.authStorage.setActiveAccount("mainnet", data.account_id!);
+        }
+
+        const url = new URL(location.origin + pending.callbackUrl);
+        url.searchParams.set("payload", data.result!);
+        location.assign(url.toString());
+      } catch (e) {
+        const url = new URL(location.href);
+        url.searchParams.set("payload", data.result!);
+        localStorage.removeItem(`__telegramPendings:${requestId}`);
+        location.assign(url.toString());
+      }
+    }
+  }
+
+  async request(conf: HereStrategyRequest): Promise<any> {
+    conf.request.telegramApp = this.appId;
+    conf.request.callbackUrl = "";
+
+    const { requestId, query } = await computeRequestId(conf.request);
+    const res = await fetch(`${proxyApi}/${requestId}/request`, {
+      method: "POST",
+      body: JSON.stringify({ topic_id: getDeviceId(), data: query }),
+      headers: { "content-type": "application/json" },
+      signal: conf.signal,
+    });
+
+    if (res.ok === false) {
+      throw Error(await res.text());
+    }
+
+    localStorage.setItem(
+      `__telegramPendings:${requestId}`,
+      JSON.stringify({ callbackUrl: conf.callbackUrl, privateKey: conf.accessKey?.toString() })
+    );
+
+    this.onRequested(requestId);
+  }
+
+  async onRequested(id: string) {
+    id = base_encode(id);
+    window.Telegram?.WebApp?.openTelegramLink(`https://t.me/${this.walletId}?startapp=h4n-${id}`);
+    window.Telegram?.WebApp?.close();
+  }
+}

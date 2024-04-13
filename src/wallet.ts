@@ -1,16 +1,17 @@
 import { Account, Connection, InMemorySigner, KeyPair } from "near-api-js";
 import { FinalExecutionOutcome, JsonRpcProvider } from "near-api-js/lib/providers";
 import { PublicKey, KeyPairEd25519 } from "near-api-js/lib/utils/key_pair";
-import { sha256 } from "js-sha256";
 import { randomBytes } from "crypto";
+import { sha256 } from "js-sha256";
 import BN from "bn.js";
 
-import { HereAuthStorage, HereKeyStore } from "./HereKeyStore";
-import { HereProvider, HereProviderStatus } from "./provider";
-import { internalThrow, isValidAccessKey, serializeActions } from "./utils";
-import { proxyProvider } from "./here-provider";
-import { createAction } from "./actions";
-import { WidgetStrategy } from "./WidgetStrategy";
+import { createAction } from "./helpers/actions";
+import { verifySignature } from "./helpers/nep0314";
+import { internalThrow, isValidAccessKey, serializeActions } from "./helpers/utils";
+import { HereAuthStorage, HereKeyStore } from "./storage/HereKeyStore";
+import { WidgetStrategy } from "./strategies/WidgetStrategy";
+import { HereStrategy } from "./strategies/HereStrategy";
+
 import {
   HereCall,
   HereAsyncOptions,
@@ -20,32 +21,57 @@ import {
   SignMessageOptions,
   SignInOptions,
   HereInitializeOptions,
-  HereStrategy,
   SignMessageOptionsNEP0413,
   SignMessageOptionsLegacy,
   SignMessageLegacyReturn,
   SignedMessageNEP0413,
+  HereProviderStatus,
 } from "./types";
-import { verifySignature } from "./nep0314";
+import { TelegramAppStrategy } from "./strategies/TelegramAppStrategy";
+import { InjectedStrategy, waitInjectedHereWallet } from "./strategies/InjectedStrategy";
 
 class AccessDenied extends Error {}
 
 export class HereWallet implements HereWalletProtocol {
-  private readonly connection: Connection;
-  private readonly defaultStrategy: () => HereStrategy;
-  private readonly authStorage: HereAuthStorage;
-  private readonly defaultProvider: HereProvider;
+  readonly connection: Connection;
+  readonly authStorage: HereAuthStorage;
+  readonly strategy: HereStrategy;
 
-  public constructor({
-    nodeUrl,
-    networkId = "mainnet",
-    authStorage = new HereKeyStore(),
-    defaultStrategy = () => new WidgetStrategy(),
-    defaultProvider = proxyProvider,
-  }: HereInitializeOptions = {}) {
-    this.authStorage = authStorage;
-    this.defaultProvider = defaultProvider;
-    this.defaultStrategy = defaultStrategy;
+  static async connect(options: HereInitializeOptions = {}) {
+    if (options.authStorage == null) options.authStorage = new HereKeyStore();
+
+    if (options.defaultStrategy) {
+      const wallet = new HereWallet(options);
+      await wallet.strategy.connect(wallet);
+      return wallet;
+    }
+
+    if (window.Telegram?.WebApp != null) {
+      options.defaultStrategy = new TelegramAppStrategy(options.botId, options.walletId);
+      const wallet = new HereWallet(options);
+      await wallet.strategy.connect(wallet);
+      return wallet;
+    }
+
+    if (window !== parent) {
+      const injected = await waitInjectedHereWallet;
+      if (injected != null) {
+        options.defaultStrategy = new InjectedStrategy();
+        const wallet = new HereWallet(options);
+        await wallet.strategy.connect(wallet);
+        return wallet;
+      }
+    }
+
+    options.defaultStrategy = new WidgetStrategy();
+    const wallet = new HereWallet(options);
+    await wallet.strategy.connect(wallet);
+    return wallet;
+  }
+
+  private constructor({ nodeUrl, networkId = "mainnet", authStorage, defaultStrategy }: HereInitializeOptions = {}) {
+    this.authStorage = authStorage!;
+    this.strategy = defaultStrategy!;
 
     const signer = new InMemorySigner(this.authStorage);
     const rpc = new JsonRpcProvider({ url: nodeUrl ?? `https://rpc.${networkId}.near.org` });
@@ -100,11 +126,7 @@ export class HereWallet implements HereWalletProtocol {
     const account = await this.account(id);
     const contractId = this.networkId === "mainnet" ? "here.storage.near" : "here.storage.testnet";
     const hereCoins = await account
-      .viewFunction({
-        args: { account_id: account.accountId },
-        methodName: "ft_balance_of",
-        contractId,
-      })
+      .viewFunction({ args: { account_id: account.accountId }, methodName: "ft_balance_of", contractId })
       .catch(() => "0");
 
     return new BN(hereCoins);
@@ -137,11 +159,13 @@ export class HereWallet implements HereWalletProtocol {
     contractId,
     allowance,
     methodNames = [],
+    strategy = this.strategy,
+    signal,
+    callbackUrl,
     selector,
-    ...delegate
   }: SignInOptions = {}): Promise<string> {
     if (contractId == null) {
-      const { accountId } = await this.authenticate(delegate);
+      const { accountId } = await this.authenticate({ strategy, signal, selector });
 
       // Generate random keypair
       await this.authStorage.setKey(this.networkId, accountId, KeyPairEd25519.fromRandom());
@@ -149,16 +173,15 @@ export class HereWallet implements HereWalletProtocol {
       return accountId;
     }
 
-    delegate.strategy = delegate.strategy ?? this.defaultStrategy();
-    delegate.provider = delegate.provider ?? this.defaultProvider;
-    delegate.onInitialized?.();
-    delegate.strategy?.onInitialized?.();
+    await strategy.onInitialized();
 
     try {
       const accessKey = KeyPair.fromRandom("ed25519");
       const permission = { receiverId: contractId, methodNames, allowance };
-      const data = await delegate.provider({
-        ...delegate,
+      const data = await strategy.request({
+        signal,
+        accessKey,
+        callbackUrl,
         request: {
           type: "call",
           network: this.networkId,
@@ -187,7 +210,7 @@ export class HereWallet implements HereWalletProtocol {
       await this.authStorage.setActiveAccount(this.networkId, data.account_id);
       return data.account_id;
     } catch (error) {
-      internalThrow(error, delegate);
+      internalThrow(error, strategy, selector);
       throw error;
     }
   }
@@ -215,32 +238,27 @@ export class HereWallet implements HereWalletProtocol {
   }
 
   public async signAndSendTransaction(opts: SignAndSendTransactionOptions) {
-    const { signerId, receiverId, actions, ...args } = opts;
-    const delegate = args as HereAsyncOptions;
-
-    delegate.strategy = delegate.strategy ?? this.defaultStrategy();
-    delegate.provider = delegate.provider ?? this.defaultProvider;
-    delegate.onInitialized?.();
-    delegate.strategy?.onInitialized?.();
+    const { signerId, receiverId, actions, callbackUrl, strategy = this.strategy, signal, selector } = opts;
+    await strategy.onInitialized();
 
     try {
       const result = await this.silentSignAndSendTransaction({ receiverId, actions, signerId });
-      const success = { type: "local", status: HereProviderStatus.SUCCESS, payload: result?.transaction_outcome.id };
-      delegate.onSuccess?.(success);
-      delegate.strategy?.onSuccess?.(success);
+      const success = { type: "web", status: HereProviderStatus.SUCCESS, payload: result?.transaction_outcome.id };
+      strategy.onSuccess(success);
       return result;
     } catch (e: any) {
       try {
         // If silent sign return AccessDenied or NotEnoughAllowance we request mobile wallet
         // OR its just transaction error
         if (!(e instanceof AccessDenied) && e?.type !== "NotEnoughAllowance") {
-          internalThrow(e, delegate);
+          internalThrow(e, strategy, selector);
           throw e;
         }
 
         const activeAccount = await this.getAccountId().catch(() => undefined);
-        const data = await delegate.provider({
-          ...delegate,
+        const data = await strategy.request({
+          signal,
+          callbackUrl,
           request: {
             type: "call",
             network: this.networkId,
@@ -255,7 +273,7 @@ export class HereWallet implements HereWalletProtocol {
 
         return await this.rpc.txStatus(data.payload, data.account_id);
       } catch (error) {
-        internalThrow(error, delegate);
+        internalThrow(error, strategy, selector);
         throw error;
       }
     }
@@ -292,24 +310,23 @@ export class HereWallet implements HereWalletProtocol {
   public signMessage(options: HereAsyncOptions & SignMessageOptionsNEP0413): Promise<SignedMessageNEP0413>;
   public signMessage(options: HereAsyncOptions & SignMessageOptionsLegacy): Promise<SignMessageLegacyReturn>;
   public async signMessage(options: SignMessageOptions): Promise<SignMessageLegacyReturn | SignedMessageNEP0413> {
-    options.strategy = options.strategy ?? this.defaultStrategy();
-    options.provider = options.provider ?? this.defaultProvider;
-    options.onInitialized?.();
-    options.strategy?.onInitialized?.();
+    const { strategy = this.strategy, signal, selector, callbackUrl } = options;
+    await strategy.onInitialized();
 
     // Legacy format with receiver property, does not correspond to the current version of the standard
     if ("receiver" in options) return await this.legacySignMessage(options);
 
     const activeAccount = await this.getAccountId().catch(() => undefined);
-    const data = await options.provider({
-      ...options,
+    const data = await strategy.request({
+      signal,
+      callbackUrl,
       request: {
         type: "sign",
         message: options.message,
         recipient: options.recipient,
         nonce: Array.from(options.nonce),
         network: this.networkId,
-        selector: options.selector || { id: activeAccount },
+        selector: selector || { id: activeAccount },
       },
     });
 
@@ -318,21 +335,17 @@ export class HereWallet implements HereWalletProtocol {
     return { publicKey, signature, accountId };
   }
 
-  async legacySignMessage({
-    message,
-    receiver,
-    nonce,
-    selector,
-    ...delegate
-  }: SignMessageOptionsLegacy & HereAsyncOptions): Promise<SignMessageLegacyReturn> {
+  async legacySignMessage({ receiver, message, nonce, ...delegate }: SignMessageOptionsLegacy & HereAsyncOptions): Promise<SignMessageLegacyReturn> {
     if (nonce == null) {
       let nonceArray: Uint8Array = new Uint8Array(32);
       nonce = [...crypto.getRandomValues(nonceArray)];
     }
 
+    const { strategy = this.strategy, callbackUrl, selector, signal } = delegate;
     const activeAccount = await this.getAccountId().catch(() => undefined);
-    const data = await delegate.provider?.({
-      ...delegate,
+    const data = await strategy.request({
+      signal,
+      callbackUrl,
       request: {
         type: "sign",
         network: this.networkId,
@@ -378,11 +391,9 @@ export class HereWallet implements HereWalletProtocol {
     }
   }
 
-  public async signAndSendTransactions({ transactions, selector, ...delegate }: SignAndSendTransactionsOptions) {
-    delegate.strategy = delegate.strategy ?? this.defaultStrategy();
-    delegate.provider = delegate.provider ?? this.defaultProvider;
-    delegate.onInitialized?.();
-    delegate.strategy?.onInitialized?.();
+  public async signAndSendTransactions({ transactions, ...delegate }: SignAndSendTransactionsOptions) {
+    const { strategy = this.strategy, selector, callbackUrl, signal } = delegate;
+    await strategy.onInitialized();
 
     let results: FinalExecutionOutcome[] = [];
     try {
@@ -392,23 +403,23 @@ export class HereWallet implements HereWalletProtocol {
       }
 
       const payload = results.map((result) => result.transaction_outcome.id).join(",");
-      const success = { type: "local", status: HereProviderStatus.SUCCESS, payload };
-      delegate.onSuccess?.(success);
-      delegate.strategy?.onSuccess?.(success);
+      const success = { type: "web", status: HereProviderStatus.SUCCESS, payload };
+      strategy.onSuccess(success);
       return results;
     } catch (e: any) {
       try {
         // If silent sign return access denied or not enough balance we request mobile wallet
         // OR its just transaction error
         if (!(e instanceof AccessDenied) && e?.type !== "NotEnoughAllowance") {
-          internalThrow(e, delegate);
+          internalThrow(e, strategy, selector);
           throw e;
         }
 
         const activeAccount = await this.getAccountId().catch(() => undefined);
         const uncompleted = transactions.slice(results.length);
-        const data = await delegate.provider({
-          ...delegate,
+        const data = await strategy.request({
+          signal,
+          callbackUrl,
           request: {
             type: "call",
             network: this.networkId,
@@ -424,7 +435,7 @@ export class HereWallet implements HereWalletProtocol {
         const promises = data.payload.split(",").map((id) => this.rpc.txStatus(id, data.account_id!));
         return await Promise.all(promises);
       } catch (error) {
-        internalThrow(error, delegate);
+        internalThrow(error, strategy, selector);
         throw error;
       }
     }
