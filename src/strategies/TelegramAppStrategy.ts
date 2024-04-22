@@ -39,7 +39,7 @@ export class TelegramAppStrategy extends HereStrategy {
           await this.wallet.authStorage.setActiveAccount("mainnet", data.account_id!);
         }
 
-        const url = new URL(location.origin + pending.callbackUrl);
+        const url = new URL(location.origin + (pending.callbackUrl || ""));
         url.searchParams.set("payload", data.result!);
         location.assign(url.toString());
       } catch (e) {
