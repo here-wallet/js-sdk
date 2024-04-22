@@ -1,6 +1,6 @@
 import sha1 from "sha1";
 import uuid4 from "uuid4";
-import { base_decode, base_encode } from "near-api-js/lib/utils/serialize";
+import { baseDecode, baseEncode } from "@near-js/utils";
 
 import { HereProviderRequest, HereProviderResult } from "../types";
 import { getDeviceId } from "./utils";
@@ -19,7 +19,7 @@ export const getRequest = async (id: string, signal?: AbortSignal): Promise<Here
   }
 
   const { data } = await res.json();
-  return JSON.parse(Buffer.from(base_decode(data)).toString("utf8"));
+  return JSON.parse(Buffer.from(baseDecode(data)).toString("utf8"));
 };
 
 export const getResponse = async (id: string): Promise<HereProviderResult> => {
@@ -49,7 +49,7 @@ export const deleteRequest = async (id: string) => {
 };
 
 export const computeRequestId = async (request: HereProviderRequest) => {
-  const query = base_encode(JSON.stringify({ ...request, _id: uuid4() }));
+  const query = baseEncode(JSON.stringify({ ...request, _id: uuid4() }));
   const hashsum = sha1(query);
   const id = Buffer.from(hashsum, "hex").toString("base64");
   const requestId = id.replaceAll("/", "_").replaceAll("-", "+").slice(0, 13);

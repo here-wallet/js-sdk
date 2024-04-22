@@ -1,6 +1,6 @@
 {
   "name": "@here-wallet/core",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -31,8 +31,11 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@near-js/accounts": "^1.1.0",
+    "@near-js/crypto": "^1.2.2",
+    "@near-js/types": "^0.1.0",
+    "@near-js/utils": "^0.2.0",
     "js-sha256": "^0.11.0",
-    "near-api-js": "^3.0.1",
     "sha1": "^1.1.1",
     "uuid4": "2.0.3"
   },

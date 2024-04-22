@@ -1,5 +1,5 @@
-import { KeyStore } from "near-api-js/lib/key_stores";
-import { KeyPair } from "near-api-js/lib/utils/key_pair";
+import { KeyPair } from "@near-js/crypto";
+import { KeyStore } from "@near-js/keystores";
 import { HereJsonStorage, StateStorage } from "./JSONStorage";
 
 export interface HereAuthStorage extends KeyStore {

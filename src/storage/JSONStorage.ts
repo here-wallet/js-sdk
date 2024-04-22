@@ -1,5 +1,3 @@
-import { waitInjectedHereWallet } from "../strategies/HereStrategy";
-
 export interface HereJsonStorage {
   setState(network: string, state: AuthState): Promise<void>;
   getFullState(): Promise<Record<string, AuthState>>;

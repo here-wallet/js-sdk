@@ -1,7 +1,7 @@
 import BN from "bn.js";
-import { Account, Connection } from "near-api-js";
-import { FinalExecutionOutcome } from "near-api-js/lib/providers";
-import { KeyPair, PublicKey } from "near-api-js/lib/utils";
+import { Account, Connection } from "@near-js/accounts";
+import { FinalExecutionOutcome } from "@near-js/types";
+import { KeyPair, PublicKey } from "@near-js/crypto";
 
 import { Base64, Optional, Transaction } from "./helpers/types";
 import { HereAuthStorage } from "./storage/HereKeyStore";

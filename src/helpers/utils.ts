@@ -1,8 +1,8 @@
 import uuid4 from "uuid4";
-import { AccessKeyInfoView } from "near-api-js/lib/providers/provider";
-import { HereProviderError, HereAsyncOptions, HereCall, HereProviderResult, HereProviderStatus, SelectorType } from "../types";
-import { Action } from "./types";
+import { AccessKeyInfoView } from "@near-js/types";
+import { HereProviderError, HereCall, HereProviderResult, HereProviderStatus, SelectorType } from "../types";
 import { HereStrategy } from "../strategies/HereStrategy";
+import { Action } from "./types";
 
 export const getDeviceId = () => {
   const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();

@@ -1,6 +1,8 @@
-import { Account, Connection, InMemorySigner, KeyPair } from "near-api-js";
-import { FinalExecutionOutcome, JsonRpcProvider } from "near-api-js/lib/providers";
-import { PublicKey, KeyPairEd25519 } from "near-api-js/lib/utils/key_pair";
+import { Account, Connection } from "@near-js/accounts";
+import { InMemorySigner } from "@near-js/signers";
+import { JsonRpcProvider } from "@near-js/providers";
+import { FinalExecutionOutcome } from "@near-js/types";
+import { PublicKey, KeyPair, KeyPairEd25519 } from "@near-js/crypto";
 import { randomBytes } from "crypto";
 import { sha256 } from "js-sha256";
 import BN from "bn.js";

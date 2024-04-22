@@ -1,7 +1,7 @@
 import uuid4 from "uuid4";
 import { HereStrategy } from "./HereStrategy";
 import { HereProviderResult, HereProviderStatus, HereStrategyRequest, HereWalletProtocol } from "../types";
-import { KeyPairEd25519 } from "near-api-js/lib/utils";
+import { KeyPairEd25519 } from "@near-js/crypto";
 
 type InjectedState = { accountId: string; network: string; publicKey: string };
 export const waitInjectedHereWallet = new Promise<InjectedState | null>((resolve) => {

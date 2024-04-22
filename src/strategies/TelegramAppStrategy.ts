@@ -1,9 +1,10 @@
-import { KeyPair, KeyPairEd25519 } from "near-api-js/lib/utils";
+import { KeyPair, KeyPairEd25519 } from "@near-js/crypto";
+import { baseDecode, baseEncode } from "@near-js/utils";
+
 import { HereProviderStatus, HereStrategyRequest, HereWalletProtocol } from "../types";
-import { computeRequestId, createRequest, proxyApi } from "../helpers/proxyMethods";
+import { computeRequestId, proxyApi } from "../helpers/proxyMethods";
 import { HereStrategy, getResponse } from "./HereStrategy";
 import { getDeviceId } from "../helpers/utils";
-import { base_decode, base_encode } from "near-api-js/lib/utils/serialize";
 
 export class TelegramAppStrategy extends HereStrategy {
   constructor(public appId = "herewalletbot/app", public walletId = "herewalletbot/app") {
@@ -17,7 +18,7 @@ export class TelegramAppStrategy extends HereStrategy {
 
     if (startapp.startsWith("hot")) {
       let requestId = startapp.split("-").pop() || "";
-      requestId = Buffer.from(base_decode(requestId)).toString("utf8");
+      requestId = Buffer.from(baseDecode(requestId)).toString("utf8");
       const data: any = await getResponse(requestId);
 
       if (data.status !== HereProviderStatus.SUCCESS) {
@@ -76,7 +77,7 @@ export class TelegramAppStrategy extends HereStrategy {
   }
 
   async onRequested(id: string) {
-    id = base_encode(id);
+    id = baseEncode(id);
     window.Telegram?.WebApp?.openTelegramLink(`https://t.me/${this.walletId}?startapp=h4n-${id}`);
     window.Telegram?.WebApp?.close();
   }
