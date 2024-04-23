@@ -1,24 +1,7 @@
-import uuid4 from "uuid4";
 import { HereStrategyRequest, HereProviderError, HereProviderResult, HereProviderStatus, HereWalletProtocol, HereProviderRequest } from "../types";
 import { createRequest, getResponse, deleteRequest, proxyApi, getRequest } from "../helpers/proxyMethods";
 
 export { createRequest, getResponse, deleteRequest, proxyApi, getRequest };
-
-type InjectedState = { accountId: string; network: string; publicKey: string };
-export const waitInjectedHereWallet = new Promise<InjectedState | null>((resolve) => {
-  if (typeof window === "undefined") return resolve(null);
-  if (window.self === window.top) return resolve(null);
-
-  const handler = (e: any) => {
-    if (e.data.type !== "here-wallet-injected") return;
-    window.parent.postMessage("here-sdk-init", "*");
-    window.removeEventListener("message", handler);
-    resolve({ accountId: e.data.accountId, publicKey: e.data.publicKey, network: e.data.network || "mainnet" });
-  };
-
-  window.addEventListener("message", handler);
-  setTimeout(() => resolve(null), 2000);
-});
 
 export class HereStrategy {
   public wallet?: HereWalletProtocol;

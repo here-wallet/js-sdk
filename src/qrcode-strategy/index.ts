@@ -1,9 +1,9 @@
-import { HereProviderRequest, HereProviderResult, HereWalletProtocol } from "../types";
+import { HereProviderRequest, HereProviderResult } from "../types";
 import { HereStrategy } from "../strategies/HereStrategy";
 import QRCode, { QRSettings } from "./qrcode";
 import logo from "./logo";
 
-export { QRCode, logo };
+export { QRCode, QRSettings, logo };
 
 export interface QRCodeStrategyOptions extends Partial<QRSettings> {
   element: HTMLElement;
