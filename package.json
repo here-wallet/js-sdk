@@ -1,12 +1,20 @@
 {
   "name": "@here-wallet/core",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "type": "commonjs",
   "exports": {
-    ".": "./build/index.js"
+    ".": "./build/index.js",
+    "./qrcode-strategy": "./build/qrcode-strategy/index.js"
+  },
+  "typesVersions": {
+    "*": {
+      "qrcode-strategy": [
+        "build/qrcode-strategy/index.d.ts"
+      ]
+    }
   },
   "homepage": "https://github.com/here-wallet/near-selector",
   "repository": {
