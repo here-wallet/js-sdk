@@ -1,5 +1,5 @@
 import { QRCodeStrategy } from "../src/qrcode-strategy";
-import { HereProviderResult, HereWallet } from "../src";
+import { HereWallet } from "../src";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

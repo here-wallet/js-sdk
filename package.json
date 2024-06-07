@@ -1,16 +1,20 @@
 {
   "name": "@here-wallet/core",
-  "version": "3.0.3",
+  "version": "3.1.0",
   "description": "HereWallet lib for near-selector",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "type": "commonjs",
   "exports": {
     ".": "./build/index.js",
-    "./qrcode-strategy": "./build/qrcode-strategy/index.js"
+    "./qrcode-strategy": "./build/qrcode-strategy/index.js",
+    "./telegramEthereumProvider": "./build/telegramEthereumProvider.js"
   },
   "typesVersions": {
     "*": {
+      "telegramEthereumProvider": [
+        "build/telegramEthereumProvider.d.ts"
+      ],
       "qrcode-strategy": [
         "build/qrcode-strategy/index.d.ts"
       ]
@@ -49,6 +53,8 @@
   },
   "keywords": [
     "near",
+    "hot-coin",
+    "ethereum",
     "herewallet",
     "web3"
   ],

@@ -6,6 +6,7 @@ import { KeyPair, PublicKey } from "@near-js/crypto";
 import { Base64, Optional, Transaction } from "./helpers/types";
 import { HereAuthStorage } from "./storage/HereKeyStore";
 import { HereStrategy } from "./strategies/HereStrategy";
+import { InjectedState } from "./helpers/waitInjected";
 
 declare global {
   var Telegram: { WebApp?: any } | undefined;
@@ -140,6 +141,7 @@ export interface HereInitializeOptions {
   botId?: string;
   walletId?: string;
   defaultStrategy?: HereStrategy;
+  injected?: InjectedState;
 }
 
 export interface HereStrategyRequest {
@@ -167,10 +169,10 @@ export interface HereWalletProtocol {
   getHereBalance: () => Promise<BN>;
   getAvailableBalance: () => Promise<BN>;
   signIn: (data: SignInOptions) => Promise<string>;
+  signAndSendTransaction: (data: SignAndSendTransactionOptions) => Promise<FinalExecutionOutcome>;
+  signAndSendTransactions: (data: SignAndSendTransactionsOptions) => Promise<Array<FinalExecutionOutcome>>;
   signMessage: {
     (data: HereAsyncOptions & SignMessageOptionsNEP0413): Promise<SignedMessageNEP0413>;
     (data: HereAsyncOptions & SignMessageOptionsLegacy): Promise<SignMessageLegacyReturn>;
   };
-  signAndSendTransaction: (data: SignAndSendTransactionOptions) => Promise<FinalExecutionOutcome>;
-  signAndSendTransactions: (data: SignAndSendTransactionsOptions) => Promise<Array<FinalExecutionOutcome>>;
 }

@@ -1,5 +1,7 @@
 export { HereWallet } from "./wallet";
 
+export * from "./helpers/waitInjected";
+
 export * from "./helpers/proxyMethods";
 export * from "./helpers/nep0314";
 export * from "./helpers/actions";

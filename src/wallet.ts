@@ -30,7 +30,9 @@ import {
   HereProviderStatus,
 } from "./types";
 import { TelegramAppStrategy } from "./strategies/TelegramAppStrategy";
-import { InjectedStrategy, waitInjectedHereWallet } from "./strategies/InjectedStrategy";
+import { InjectedStrategy } from "./strategies/InjectedStrategy";
+import { waitInjectedHereWallet } from "./helpers/waitInjected";
+import { hereWalletProvider } from "./telegramEthereumProvider";
 
 class AccessDenied extends Error {}
 
@@ -48,21 +50,21 @@ export class HereWallet implements HereWalletProtocol {
       return wallet;
     }
 
+    if (window !== parent) {
+      const injected = await waitInjectedHereWallet;
+      if (injected != null) {
+        options.defaultStrategy = new InjectedStrategy();
+        const wallet = new HereWallet({ ...options, injected });
+        await wallet.strategy.connect(wallet);
+        return wallet;
+      }
+    }
+
     if (window.Telegram?.WebApp != null) {
       options.defaultStrategy = new TelegramAppStrategy(options.botId, options.walletId);
       const wallet = new HereWallet(options);
       await wallet.strategy.connect(wallet);
       return wallet;
-    }
-
-    if (window !== parent) {
-      const injected = await waitInjectedHereWallet;
-      if (injected != null) {
-        options.defaultStrategy = new InjectedStrategy();
-        const wallet = new HereWallet(options);
-        await wallet.strategy.connect(wallet);
-        return wallet;
-      }
     }
 
     options.defaultStrategy = new WidgetStrategy();
@@ -71,9 +73,17 @@ export class HereWallet implements HereWalletProtocol {
     return wallet;
   }
 
-  private constructor({ nodeUrl, networkId = "mainnet", authStorage, defaultStrategy }: HereInitializeOptions = {}) {
+  readonly ethProvider?: any;
+  readonly ethAddress?: string;
+  readonly telegramId?: number;
+
+  private constructor({ injected, nodeUrl, networkId = "mainnet", authStorage, defaultStrategy }: HereInitializeOptions = {}) {
     this.authStorage = authStorage!;
     this.strategy = defaultStrategy!;
+
+    Object.defineProperty(this, "ethAddress", { get: () => injected?.ethAddress });
+    Object.defineProperty(this, "telegramId", { get: () => injected?.telegramId });
+    Object.defineProperty(this, "ethProvider", { get: () => (injected?.ethAddress ? hereWalletProvider : null) });
 
     const signer = new InMemorySigner(this.authStorage);
     const rpc = new JsonRpcProvider({ url: nodeUrl ?? `https://rpc.${networkId}.near.org` });
