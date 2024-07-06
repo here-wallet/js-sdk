@@ -283,7 +283,7 @@ export class HereWallet implements HereWalletProtocol {
           throw Error("Transaction not found, but maybe executed");
         }
 
-        return await this.rpc.txStatus(data.payload, data.account_id);
+        return await this.rpc.txStatus(data.payload, data.account_id, "INCLUDED");
       } catch (error) {
         internalThrow(error, strategy, selector);
         throw error;
@@ -444,7 +444,7 @@ export class HereWallet implements HereWalletProtocol {
           throw Error("Transaction not found, but maybe executed");
         }
 
-        const promises = data.payload.split(",").map((id) => this.rpc.txStatus(id, data.account_id!));
+        const promises = data.payload.split(",").map((id) => this.rpc.txStatus(id, data.account_id!, "INCLUDED"));
         return await Promise.all(promises);
       } catch (error) {
         internalThrow(error, strategy, selector);

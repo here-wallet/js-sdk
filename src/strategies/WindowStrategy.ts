@@ -1,4 +1,4 @@
-import { HereProviderRequest, HereWalletProtocol } from "../types";
+import { HereProviderRequest } from "../types";
 import { HereStrategy } from "./HereStrategy";
 
 export class WindowStrategy extends HereStrategy {
