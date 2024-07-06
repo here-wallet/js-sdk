@@ -5,13 +5,13 @@ import { HereStrategy } from "../strategies/HereStrategy";
 import { Action } from "./types";
 
 export const getDeviceId = () => {
-  const topicId = window.localStorage.getItem("herewallet-topic") || uuid4();
-  window.localStorage.setItem("herewallet-topic", topicId);
+  const topicId = window?.localStorage.getItem("herewallet-topic") || uuid4();
+  window?.localStorage.setItem("herewallet-topic", topicId);
   return topicId;
 };
 
 export const isMobile = () => {
-  return window.matchMedia("(any-pointer:coarse)").matches;
+  return window?.matchMedia("(any-pointer:coarse)").matches || false;
 };
 
 export const serializeActions = (actions: Action[]) => {

@@ -6,6 +6,8 @@ import { HereStrategy } from "./HereStrategy";
 
 export class InjectedStrategy extends HereStrategy {
   async connect(wallet: HereWalletProtocol): Promise<void> {
+    if (typeof window === "undefined") return Promise.resolve();
+
     this.wallet = wallet;
     const injected = await waitInjectedHereWallet;
     if (injected == null) return;
@@ -15,18 +17,20 @@ export class InjectedStrategy extends HereStrategy {
   }
 
   async request(conf: HereStrategyRequest) {
+    if (typeof window === "undefined") return Promise.reject("SSR");
+
     return new Promise<HereProviderResult>((resolve) => {
       const id = uuid4();
       const handler = (e: any) => {
         if (e.data.id !== id) return;
         if (e.data.status === HereProviderStatus.SUCCESS || e.data.status === HereProviderStatus.FAILED) {
-          window.removeEventListener("message", handler);
+          window?.removeEventListener("message", handler);
           return resolve(e.data);
         }
       };
 
-      window.parent.postMessage({ $here: true, ...conf.request, id }, "*");
-      window.addEventListener("message", handler);
+      window?.parent.postMessage({ $here: true, ...conf.request, id }, "*");
+      window?.addEventListener("message", handler);
     });
   }
 }

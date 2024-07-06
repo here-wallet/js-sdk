@@ -8,12 +8,12 @@ export type InjectedState = {
 
 export const waitInjectedHereWallet = new Promise<InjectedState | null>((resolve) => {
   if (typeof window === "undefined") return resolve(null);
-  if (window.self === window.top) return resolve(null);
+  if (window?.self === window?.top) return resolve(null);
 
   const handler = (e: any) => {
     if (e.data.type !== "here-wallet-injected") return;
-    window.parent.postMessage("here-sdk-init", "*");
-    window.removeEventListener("message", handler);
+    window?.parent.postMessage("here-sdk-init", "*");
+    window?.removeEventListener("message", handler);
     resolve({
       ethAddress: e.data.ethAddress,
       accountId: e.data.accountId,
@@ -23,6 +23,6 @@ export const waitInjectedHereWallet = new Promise<InjectedState | null>((resolve
     });
   };
 
-  window.addEventListener("message", handler);
+  window?.addEventListener("message", handler);
   setTimeout(() => resolve(null), 2000);
 });

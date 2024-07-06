@@ -5,16 +5,10 @@ const promises: Record<string, any> = {};
 const request = (type: string, args?: any) => {
   return new Promise((resolve, reject) => {
     const id = uuid4();
-    window.parent.postMessage({ type, id, args }, "*");
+    window?.parent.postMessage({ type, id, args }, "*");
     promises[id] = { resolve, reject };
   });
 };
-
-window.addEventListener("message", (e) => {
-  if (e.data.type !== "ethereum") return;
-  if (e.data.isSuccess) return promises[e.data.id]?.resolve(e.data.result);
-  promises[e.data.id]?.reject(e.data.result);
-});
 
 const hereWalletProvider = {
   on() {},
@@ -24,10 +18,11 @@ const hereWalletProvider = {
 };
 
 async function announceProvider() {
+  if (typeof window === "undefined") return;
   const injected = await waitInjectedHereWallet;
   if (injected == null) return;
 
-  window.dispatchEvent(
+  window?.dispatchEvent(
     new CustomEvent("eip6963:announceProvider", {
       detail: Object.freeze({
         provider: hereWalletProvider,
@@ -42,7 +37,15 @@ async function announceProvider() {
   );
 }
 
-window.addEventListener("eip6963:requestProvider", () => announceProvider());
-announceProvider();
+if (typeof window !== "undefined") {
+  window?.addEventListener("message", (e) => {
+    if (e.data.type !== "ethereum") return;
+    if (e.data.isSuccess) return promises[e.data.id]?.resolve(e.data.result);
+    promises[e.data.id]?.reject(e.data.result);
+  });
+
+  window?.addEventListener("eip6963:requestProvider", () => announceProvider());
+  announceProvider();
+}
 
 export { hereWalletProvider };

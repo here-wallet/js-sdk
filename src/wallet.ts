@@ -50,21 +50,23 @@ export class HereWallet implements HereWalletProtocol {
       return wallet;
     }
 
-    if (window !== parent) {
-      const injected = await waitInjectedHereWallet;
-      if (injected != null) {
-        options.defaultStrategy = new InjectedStrategy();
-        const wallet = new HereWallet({ ...options, injected });
+    if (typeof window !== "undefined") {
+      if (window !== parent) {
+        const injected = await waitInjectedHereWallet;
+        if (injected != null) {
+          options.defaultStrategy = new InjectedStrategy();
+          const wallet = new HereWallet({ ...options, injected });
+          await wallet.strategy.connect(wallet);
+          return wallet;
+        }
+      }
+
+      if (window.Telegram?.WebApp != null) {
+        options.defaultStrategy = new TelegramAppStrategy(options.botId, options.walletId);
+        const wallet = new HereWallet(options);
         await wallet.strategy.connect(wallet);
         return wallet;
       }
-    }
-
-    if (window.Telegram?.WebApp != null) {
-      options.defaultStrategy = new TelegramAppStrategy(options.botId, options.walletId);
-      const wallet = new HereWallet(options);
-      await wallet.strategy.connect(wallet);
-      return wallet;
     }
 
     options.defaultStrategy = new WidgetStrategy();
@@ -310,7 +312,7 @@ export class HereWallet implements HereWalletProtocol {
   async authenticate(options: HereAsyncOptions & Partial<SignMessageOptionsNEP0413> = {}) {
     const signRequest = {
       nonce: options.nonce ?? randomBytes(32),
-      recipient: options.recipient ?? window.location.host,
+      recipient: options.recipient ?? window?.location.host,
       message: options.message ?? "Authenticate",
     };
 

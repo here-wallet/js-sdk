@@ -10,19 +10,29 @@ export interface AuthState {
   accounts: Record<string, string>;
 }
 
+const mockStorage = {
+  getItem(k: string): string | undefined | null {
+    return null;
+  },
+
+  setItem(k: string, v: any) {},
+  removeItem(k: string) {},
+};
+
 export class StateStorage implements HereJsonStorage {
   private readonly dataKey = `herewallet:keystore`;
+  private readonly storage = typeof window !== "undefined" ? window.localStorage : mockStorage;
   constructor() {}
 
   async setState(network: string, state: AuthState) {
     const data = await this.getFullState();
     data[network] = state;
-    window.localStorage.setItem(this.dataKey, JSON.stringify(data));
+    this.storage.setItem(this.dataKey, JSON.stringify(data));
   }
 
   async getFullState(): Promise<Record<string, AuthState>> {
     try {
-      return JSON.parse(window.localStorage.getItem(this.dataKey)!) || {};
+      return JSON.parse(this.storage.getItem(this.dataKey)!) || {};
     } catch {
       return {};
     }
@@ -34,6 +44,6 @@ export class StateStorage implements HereJsonStorage {
   }
 
   async clear() {
-    window.localStorage.removeItem(this.dataKey);
+    this.storage.removeItem(this.dataKey);
   }
 }

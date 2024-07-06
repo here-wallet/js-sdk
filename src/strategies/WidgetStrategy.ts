@@ -72,7 +72,7 @@ export class WidgetStrategy extends HereStrategy {
       } catch {}
     };
 
-    window.addEventListener("message", this.messageHandler);
+    window?.addEventListener("message", this.messageHandler);
   }
 
   postMessage(data: object) {
@@ -99,7 +99,7 @@ export class WidgetStrategy extends HereStrategy {
 
   close() {
     if (this.messageHandler) {
-      window.removeEventListener("message", this.messageHandler);
+      window?.removeEventListener("message", this.messageHandler);
       this.messageHandler = undefined;
     }
 

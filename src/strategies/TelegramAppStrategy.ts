@@ -12,9 +12,11 @@ export class TelegramAppStrategy extends HereStrategy {
   }
 
   async connect(wallet: HereWalletProtocol): Promise<void> {
+    if (typeof window === "undefined") return;
     this.wallet = wallet;
-    const startapp = window.Telegram?.WebApp?.initDataUnsafe?.start_param || "";
-    window.Telegram?.WebApp.ready?.();
+
+    const startapp = window?.Telegram?.WebApp?.initDataUnsafe?.start_param || "";
+    window?.Telegram?.WebApp.ready?.();
 
     if (startapp.startsWith("hot")) {
       let requestId = startapp.split("-").pop() || "";
@@ -53,6 +55,8 @@ export class TelegramAppStrategy extends HereStrategy {
   }
 
   async request(conf: HereStrategyRequest): Promise<any> {
+    if (typeof window === "undefined") return;
+
     conf.request.telegramApp = this.appId;
     conf.request.callbackUrl = "";
 
@@ -77,8 +81,10 @@ export class TelegramAppStrategy extends HereStrategy {
   }
 
   async onRequested(id: string) {
+    if (typeof window === "undefined") return;
+
     id = baseEncode(id);
-    window.Telegram?.WebApp?.openTelegramLink(`https://t.me/${this.walletId}?startapp=h4n-${id}`);
-    window.Telegram?.WebApp?.close();
+    window?.Telegram?.WebApp?.openTelegramLink(`https://t.me/${this.walletId}?startapp=h4n-${id}`);
+    window?.Telegram?.WebApp?.close();
   }
 }

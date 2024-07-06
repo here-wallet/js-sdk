@@ -158,11 +158,11 @@ class QRCode {
 
   animate = () => {
     this.render();
-    this.rafHandler = window.requestAnimationFrame(this.animate);
+    this.rafHandler = requestAnimationFrame(this.animate);
   };
 
   stopAnimate() {
-    window.cancelAnimationFrame(this.rafHandler);
+    cancelAnimationFrame(this.rafHandler);
   }
 }
 
