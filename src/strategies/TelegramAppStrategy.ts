@@ -21,8 +21,11 @@ export class TelegramAppStrategy extends HereStrategy {
     if (startapp.startsWith("hot")) {
       let requestId = startapp.split("-").pop() || "";
       requestId = Buffer.from(baseDecode(requestId)).toString("utf8");
-      const data: any = await getResponse(requestId);
 
+      const requestPending = localStorage.getItem(`__telegramPendings:${requestId}`);
+      if (requestPending == null) return;
+
+      const data: any = await getResponse(requestId);
       if (data.status !== HereProviderStatus.SUCCESS) {
         localStorage.removeItem(`__telegramPendings:${requestId}`);
         return;
@@ -34,9 +37,7 @@ export class TelegramAppStrategy extends HereStrategy {
       }
 
       try {
-        const pending = JSON.parse(localStorage.getItem(`__telegramPendings:${requestId}`) || "");
-        localStorage.removeItem(`__telegramPendings:${requestId}`);
-
+        const pending = JSON.parse(requestPending);
         if (pending.privateKey) {
           await this.wallet.authStorage.setKey("mainnet", data.account_id!, KeyPair.fromString(pending.privateKey));
           await this.wallet.authStorage.setActiveAccount("mainnet", data.account_id!);
@@ -44,10 +45,13 @@ export class TelegramAppStrategy extends HereStrategy {
 
         const url = new URL(location.origin + (pending.callbackUrl || ""));
         url.searchParams.set("payload", data.result!);
+
+        localStorage.removeItem(`__telegramPendings:${requestId}`);
         location.assign(url.toString());
       } catch (e) {
         const url = new URL(location.href);
         url.searchParams.set("payload", data.result!);
+
         localStorage.removeItem(`__telegramPendings:${requestId}`);
         location.assign(url.toString());
       }
