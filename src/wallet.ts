@@ -51,6 +51,11 @@ export class HereWallet implements HereWalletProtocol {
     }
 
     if (typeof window !== "undefined") {
+      if (window.hotExtension) {
+        options.defaultStrategy = new InjectedStrategy();
+        return new HereWallet(options);
+      }
+
       if (window !== parent) {
         const injected = await waitInjectedHereWallet;
         if (injected != null) {

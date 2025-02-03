@@ -10,6 +10,7 @@ import { InjectedState } from "./helpers/waitInjected";
 
 declare global {
   var Telegram: { WebApp?: any } | undefined;
+  var hotExtension: any | undefined;
 }
 
 export type SelectorType = { id?: string; type?: string };

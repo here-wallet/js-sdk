@@ -19,6 +19,10 @@ export class InjectedStrategy extends HereStrategy {
   async request(conf: HereStrategyRequest) {
     if (typeof window === "undefined") return Promise.reject("SSR");
 
+    if (window.hotExtension) {
+      return await window.hotExtension.request("near:hereConnect", conf.request);
+    }
+
     return new Promise<HereProviderResult>((resolve) => {
       const id = uuid4();
       const handler = (e: any) => {

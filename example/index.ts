@@ -55,10 +55,7 @@ const instantSignin = async (here) => {
 };
 
 const main = async () => {
-  const here = await HereWallet.connect({
-    botId: "HOTExampleConnectBot/app",
-    walletId: "herewalletbot/beta",
-  });
+  const here = await HereWallet.connect({});
 
   if (await here.isSignedIn()) {
     uikit.loginState(await here.getAccountId());
